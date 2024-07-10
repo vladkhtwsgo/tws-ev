@@ -1,6 +1,10 @@
 import {EmailValidationRequest, EmailValidationResponse} from "../interfaces";
 import {v4 as uuidv4} from 'uuid';
 import {saveValidationResult} from "../services/dynamo.service";
+import {SQSClient, SendMessageCommand} from '@aws-sdk/client-sqs';
+
+const sqsClient = new SQSClient({region: process.env.AWS_REGION || 'us-east-1'});
+const QUEUE_URL = process.env.QUEUE_URL || '';
 
 export const handler = async (event: { body: any; }): Promise<EmailValidationResponse> => {
     // Transform plain object to class instance
@@ -43,6 +47,27 @@ export const handler = async (event: { body: any; }): Promise<EmailValidationRes
             statusCode: 500,
             body: JSON.stringify({})
         }
+    }
+
+    const sqsMessage = {
+        MessageBody: JSON.stringify({
+            requestId,
+            email
+        }),
+        QueueUrl: QUEUE_URL
+    };
+
+    try {
+        const command = new SendMessageCommand(sqsMessage);
+        await sqsClient.send(command);
+    } catch (err) {
+        console.error(`Error sending message to SQS: ${err}`);
+        return {
+            statusCode: 500,
+            body: JSON.stringify({
+                message: 'Internal Server Error'
+            }),
+        };
     }
 
     return {

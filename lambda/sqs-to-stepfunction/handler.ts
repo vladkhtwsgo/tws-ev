@@ -4,6 +4,7 @@ const sfnClient = new SFNClient({});
 
 export const handler = async (event: any): Promise<void> => {
     const records = event.Records;
+    console.log('123131312312312');
 
     for (const record of records) {
         const body = JSON.parse(record.body);

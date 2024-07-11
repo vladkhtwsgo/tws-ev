@@ -15,6 +15,12 @@ export class TwsEvStack extends cdk.Stack {
     constructor(scope: Construct, id: string, props?: cdk.StackProps) {
         super(scope, id, props);
 
+        // Define Parameters
+        const domainPrefixParam = new cdk.CfnParameter(this, 'DomainPrefix', {
+            type: 'String',
+            description: 'The unique prefix for the Cognito domain',
+        });
+
         // DynamoDB table for storing validation results
         const validationResultsTable = new dynamodb.Table(this, 'ValidationResultsTable', {
             partitionKey: {name: 'email', type: dynamodb.AttributeType.STRING},
@@ -97,6 +103,19 @@ export class TwsEvStack extends cdk.Stack {
             identityPoolId: identityPool.ref,
             roles: {authenticated: authenticatedRole.roleArn},
         });
+
+        //Temporary disable auth to easy test. Uncomment later
+        // Cognito authorizer
+        // const authorizer = new apigateway.CognitoUserPoolsAuthorizer(this, 'Authorizer', {
+        //     cognitoUserPools: [userPool],
+        // });
+        // // Cognito User Pool Domain
+        // const userPoolDomain = new cognito.UserPoolDomain(this, 'UserPoolDomain', {
+        //     userPool,
+        //     cognitoDomain: {
+        //         domainPrefix: domainPrefixParam.valueAsString, // Use the parameter value
+        //     },
+        // });
 
         // Lambda functions
         const initiateValidationLambda = new NodejsFunction(this, 'InitiateValidationLambda', {
@@ -233,6 +252,9 @@ export class TwsEvStack extends cdk.Stack {
         emailValidationResource.addMethod('POST', new apigateway.LambdaIntegration(initiateValidationLambda, {
             proxy: true,
         }), {
+            //Temporary disable auth to easy test. Uncomment later
+            // authorizer,
+            // authorizationType: apigateway.AuthorizationType.COGNITO,
             methodResponses: [
                 {
                     statusCode: '200',
@@ -244,6 +266,10 @@ export class TwsEvStack extends cdk.Stack {
             requestValidator: requestValidator,
         });
         const checkStatusResource = emailValidationResource.addResource('{requestId}');
-        checkStatusResource.addMethod('GET', new apigateway.LambdaIntegration(checkStatusLambda, {proxy: true,}));//Just for example as proxy mode
+        checkStatusResource.addMethod('GET', new apigateway.LambdaIntegration(checkStatusLambda, {proxy: true,}), {
+            //Temporary disable auth to easy test. Uncomment later
+            // authorizer,
+            // authorizationType: apigateway.AuthorizationType.COGNITO,
+        });//Just for example as proxy mode to pass all responses from lambda
     }
 }

@@ -1,26 +1,12 @@
 import {DynamoDBClient} from "@aws-sdk/client-dynamodb";
 import {DynamoDBDocumentClient, GetCommand, PutCommand, QueryCommand, UpdateCommand} from "@aws-sdk/lib-dynamodb";
-import {EmailValidationResponse, EmailValidationResult, User} from "../interfaces";
-import {EmailNotFoundException} from "../exceptions/email-not-found.exception";
+import {EmailNotFoundException} from "../exceptions";
+import {EmailValidationResult} from "../interfaces";
 
 const client = new DynamoDBClient({});
 const dynamo = DynamoDBDocumentClient.from(client);
 
-export const saveUser = async (user: User): Promise<void> => {
-    const params = {
-        TableName: process.env.TABLE_NAME!,
-        Item: user,
-    };
-
-    await dynamo.send(new PutCommand(params));
-};
-
-export const saveValidationResult = async (data: {
-    requestId: string,
-    email: string,
-    valid: boolean,
-    validationStatus: string
-}): Promise<void> => {
+export const saveValidationResult = async (data: EmailValidationResult): Promise<void> => {
     const params = {
         TableName: process.env.VALIDATION_RESULTS_TABLE!,
         Item: data,
@@ -29,13 +15,13 @@ export const saveValidationResult = async (data: {
     await dynamo.send(new PutCommand(params));
 };
 
-export const updateValidationResult = async (email: string, valid: boolean, validationStatus: string): Promise<void> => {
+export const updateValidationResult = async (email: string, score: number, validationStatus: string): Promise<void> => {
     const command = new UpdateCommand({
         TableName: process.env.VALIDATION_RESULTS_TABLE!,
         Key: {email},
-        UpdateExpression: "set valid = :valid, validationStatus = :validationStatus",
+        UpdateExpression: "set score = :score, validationStatus = :validationStatus",
         ExpressionAttributeValues: {
-            ":valid": valid,
+            ":score": score,
             ":validationStatus": validationStatus,
         }
     });
@@ -43,7 +29,20 @@ export const updateValidationResult = async (email: string, valid: boolean, vali
     await dynamo.send(command);
 }
 
-export const findValidationResultByRequestId = async (requestId: string) => {
+export const findValidationResultByEmail = async (email: string): Promise<EmailValidationResult> => {
+    const query = new GetCommand({
+            TableName: process.env.VALIDATION_RESULTS_TABLE!,
+            Key: {email},
+        }
+    )
+    const {Item: item} = await dynamo.send(query);
+    if (!item) {
+        throw new EmailNotFoundException();
+    }
+    return item as EmailValidationResult;
+}
+
+export const findValidationResultByRequestId = async (requestId: string): Promise<EmailValidationResult> => {
     const query = new QueryCommand({
         TableName: process.env.VALIDATION_RESULTS_TABLE!,
         IndexName: 'RequestIdIndex',
@@ -57,5 +56,5 @@ export const findValidationResultByRequestId = async (requestId: string) => {
     if (!items || items.length === 0) {
         throw new EmailNotFoundException();
     }
-    return items[0];
+    return items[0] as EmailValidationResult;
 };

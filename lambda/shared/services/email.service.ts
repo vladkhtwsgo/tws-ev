@@ -1,15 +1,18 @@
 import {promises as dns} from "dns";
+import {CnameNotFoundException} from "../exceptions";
 
 export const validateCname = async (email: string): Promise<boolean> => {
     const domain = email.split('@')[1];
     try {
         await dns.resolveCname(domain);
         return true;
-    } catch (err) {
-        console.error("Error resolving CNAME:", err);
+    } catch (err: any) { //this is because bug in nodejs if lambda behind the proxy it may not get CNAME correctly
+        if (err?.code === 'ENODATA') {
+            throw new CnameNotFoundException();
+        }
         return false;
     }
-}
+};
 
 export const validateMx = async (email: string): Promise<boolean> => {
     const domain = email.split('@')[1];

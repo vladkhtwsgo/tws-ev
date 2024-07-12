@@ -5,14 +5,13 @@ export const handler = async (event: EmailValidationStep[]): Promise<void> => {
     const mxResult = event[0];
     const cnameResult = event[1];
     const email = mxResult.email;
-    const isValid = mxResult.valid && cnameResult.valid;
+    const score = Math.max(0, Math.min(mxResult.points + cnameResult.points, 20));
 
     try {
+        console.log('Data from MX:', mxResult);
+        console.log('Data from CNAME:', cnameResult);
         let validationStatus = (mxResult?.error || cnameResult?.error) ? 'failed' : 'completed';
-        console.log('validationStatus', validationStatus);
-        console.log('mxResult', mxResult);
-        console.log('cnameResult', cnameResult);
-        await updateValidationResult(email, isValid, validationStatus);
+        await updateValidationResult(email, score, validationStatus);
     } catch (err) {
         console.error(`Error saving validation result for email: ${email} `, err);
     }

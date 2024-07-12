@@ -1,16 +1,12 @@
 import {DynamoDBClient} from "@aws-sdk/client-dynamodb";
 import {DynamoDBDocumentClient, GetCommand, PutCommand, QueryCommand, UpdateCommand} from "@aws-sdk/lib-dynamodb";
-import {EmailNotFoundException} from "../exceptions/email-not-found.exception";
+import {EmailNotFoundException} from "../exceptions";
+import {EmailValidationResult} from "../interfaces";
 
 const client = new DynamoDBClient({});
 const dynamo = DynamoDBDocumentClient.from(client);
 
-export const saveValidationResult = async (data: {
-    requestId: string,
-    email: string,
-    valid: boolean,
-    validationStatus: string
-}): Promise<void> => {
+export const saveValidationResult = async (data: EmailValidationResult): Promise<void> => {
     const params = {
         TableName: process.env.VALIDATION_RESULTS_TABLE!,
         Item: data,
@@ -19,13 +15,13 @@ export const saveValidationResult = async (data: {
     await dynamo.send(new PutCommand(params));
 };
 
-export const updateValidationResult = async (email: string, valid: boolean, validationStatus: string): Promise<void> => {
+export const updateValidationResult = async (email: string, score: number, validationStatus: string): Promise<void> => {
     const command = new UpdateCommand({
         TableName: process.env.VALIDATION_RESULTS_TABLE!,
         Key: {email},
-        UpdateExpression: "set valid = :valid, validationStatus = :validationStatus",
+        UpdateExpression: "set score = :score, validationStatus = :validationStatus",
         ExpressionAttributeValues: {
-            ":valid": valid,
+            ":score": score,
             ":validationStatus": validationStatus,
         }
     });
@@ -33,7 +29,7 @@ export const updateValidationResult = async (email: string, valid: boolean, vali
     await dynamo.send(command);
 }
 
-export const findValidationResultByRequestId = async (requestId: string) => {
+export const findValidationResultByRequestId = async (requestId: string): Promise<EmailValidationResult> => {
     const query = new QueryCommand({
         TableName: process.env.VALIDATION_RESULTS_TABLE!,
         IndexName: 'RequestIdIndex',
@@ -47,5 +43,5 @@ export const findValidationResultByRequestId = async (requestId: string) => {
     if (!items || items.length === 0) {
         throw new EmailNotFoundException();
     }
-    return items[0];
+    return items[0] as EmailValidationResult;
 };

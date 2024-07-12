@@ -3,15 +3,22 @@ import {
     EmailValidationRequest,
     EmailValidationStep
 } from "../../../../shared/interfaces";
+import {CnameNotFoundException} from "../../../../shared/exceptions";
 
 export const handler = async (event: EmailValidationRequest): Promise<EmailValidationStep> => {
     const {email} = event;
-
+    let points = 5;
     try {
         const isValid = await validateCname(email);
-        return {email, valid: isValid, validator: 'cname'};
+        points = isValid ? 10 : 0
+        return {email, points, validator: 'cname'};
     } catch (err) {
-        console.error('Error validating email cname for email ', err);
-        return {email, valid: false, validator: 'cname', error: 'Error validating cname'};
+        if (err instanceof CnameNotFoundException) {
+            console.warn(`No CNAME record found for email: ${email}`);
+        } else {
+            console.error(`Error validating email CNAME for email: ${email}, error:`, err);
+            points = 0;
+        }
+        return {email, points, validator: 'cname', error: 'Error validating cname'};
     }
 }

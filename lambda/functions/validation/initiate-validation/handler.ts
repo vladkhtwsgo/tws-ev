@@ -2,7 +2,7 @@ import {EmailValidationResponse} from "../../../shared/interfaces";
 import {v4 as uuidv4} from 'uuid';
 import {saveValidationResult, updateValidationResult} from "../../../shared/services/dynamo.service";
 import {createResponse} from "../../../shared/utils";
-import {HttpStatus} from "../../../shared/enums";
+import {HttpStatus, ValidationStatus} from "../../../shared/enums";
 import {sendPayloadToSqs} from "../../../shared/services/sqs.service";
 
 
@@ -26,7 +26,7 @@ export const handler = async (event: { body: any; }): Promise<EmailValidationRes
             requestId,
             email,
             score: 0,
-            validationStatus: 'in_progress',
+            validationStatus: ValidationStatus.IN_PROGRESS,
         });
     } catch (err) {
         console.log(`Error to initiate validation failed requestId=${requestId}, error: ${err}`);
@@ -41,6 +41,6 @@ export const handler = async (event: { body: any; }): Promise<EmailValidationRes
         console.error(`Error sending message to SQS requestId=${requestId}, error: ${err}`);
         return createResponse(HttpStatus.INTERNAL_SERVER_ERROR);
     } finally {
-        await updateValidationResult(email, 0, 'failed');
+        await updateValidationResult(email, 0, ValidationStatus.FAILED);
     }
 }

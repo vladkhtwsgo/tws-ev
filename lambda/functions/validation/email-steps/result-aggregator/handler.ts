@@ -1,5 +1,6 @@
 import {updateValidationResult} from '../../../../shared/services/dynamo.service';
 import {EmailValidationStep} from "../../../../shared/interfaces";
+import {ValidationStatus} from "../../../../shared/enums/validation-status.enum";
 
 export const handler = async (event: EmailValidationStep[]): Promise<void> => {
     const mxResult = event[0];
@@ -10,8 +11,7 @@ export const handler = async (event: EmailValidationStep[]): Promise<void> => {
     try {
         console.log('Data from MX:', mxResult);
         console.log('Data from CNAME:', cnameResult);
-        let validationStatus = (mxResult?.error || cnameResult?.error) ? 'failed' : 'completed';
-        await updateValidationResult(email, score, validationStatus);
+        await updateValidationResult(email, score, ValidationStatus.COMPLETED);
     } catch (err) {
         console.error(`Error saving validation result for email: ${email} `, err);
     }

@@ -1,3 +1,5 @@
+import {ValidationStatus} from "../enums/validation-status.enum";
+
 export interface EmailValidationRequest {
     email: string;
 }
@@ -19,6 +21,6 @@ export interface EmailValidationResult {
     requestId: string;
     email: string;
     score: number; //max 20
-    validationStatus: 'pending' | 'completed' | 'failed' | 'in_progress';
+    validationStatus: ValidationStatus;
     validationSteps?: EmailValidationStep[]; //TODO:: maybe from timelinedb
 }

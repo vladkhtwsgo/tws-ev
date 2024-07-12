@@ -47,12 +47,18 @@ example of response
 
 ```shell
 {
-  "valid": false,
+  "score": 15,
   "validationStatus": "completed",
   "email": "vladbbk@hotmail.com",
-  "requestId": "c4a8c3d9-4e10-433f-8bbd-de1aa61de018"
+  "requestId": "e470fab3-ccab-43ff-903c-2a4e7bbe9ff9"
 }
 ```
+
+Understanding of score values:
+- `0` - bad
+- `<=10` - suspicious
+- `>10`  - can be used
+- `20` - good
 
 Used tools:
 
@@ -83,5 +89,6 @@ This is Default CDK template but with some changes.
       |---/services - a shared folder with services for all lamdas
          |----/dynamo.service
          |----/email.service
+      |---/...
 ```
 

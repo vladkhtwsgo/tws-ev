@@ -1,4 +1,4 @@
-import {validateCname} from "../../../../shared/services/email.service";
+import {validateCname} from "../../../../shared/services/validation.service";
 import {
     EmailValidationRequest,
     EmailValidationStep

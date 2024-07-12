@@ -29,6 +29,19 @@ export const updateValidationResult = async (email: string, score: number, valid
     await dynamo.send(command);
 }
 
+export const findValidationResultByEmail = async (email: string): Promise<EmailValidationResult> => {
+    const query = new GetCommand({
+            TableName: process.env.VALIDATION_RESULTS_TABLE!,
+            Key: {email},
+        }
+    )
+    const {Item: item} = await dynamo.send(query);
+    if (!item) {
+        throw new EmailNotFoundException();
+    }
+    return item as EmailValidationResult;
+}
+
 export const findValidationResultByRequestId = async (requestId: string): Promise<EmailValidationResult> => {
     const query = new QueryCommand({
         TableName: process.env.VALIDATION_RESULTS_TABLE!,

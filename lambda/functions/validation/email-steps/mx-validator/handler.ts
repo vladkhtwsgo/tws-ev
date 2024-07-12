@@ -1,4 +1,4 @@
-import {validateMx} from "../../../../shared/services/email.service";
+import {validateMx} from "../../../../shared/services/validation.service";
 import {
     EmailValidationRequest,
     EmailValidationStep

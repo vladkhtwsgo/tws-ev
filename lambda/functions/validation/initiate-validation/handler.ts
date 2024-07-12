@@ -1,7 +1,11 @@
-import {EmailValidationResponse} from "../../../shared/interfaces";
+import {EmailValidationResponse, EmailValidationResult} from "../../../shared/interfaces";
 import {v4 as uuidv4} from 'uuid';
-import {saveValidationResult, updateValidationResult} from "../../../shared/services/dynamo.service";
-import {createResponse} from "../../../shared/utils";
+import {
+    findValidationResultByEmail,
+    saveValidationResult,
+    updateValidationResult
+} from "../../../shared/services/dynamo.service";
+import {createResponse, isEmail} from "../../../shared/utils";
 import {HttpStatus, ValidationStatus} from "../../../shared/enums";
 import {sendPayloadToSqs} from "../../../shared/services/sqs.service";
 
@@ -15,12 +19,19 @@ export const handler = async (event: { body: any; }): Promise<EmailValidationRes
     }
 
     const {email} = payload;
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!email || !emailRegex.test(email) || email.length >= 1000) { //We do not want to run the other parts if it just a string
+    if (!email || !isEmail(email) || email.length >= 1000) { //We do not want to run the other parts if it just a string
         return createResponse(HttpStatus.BAD_REQUEST, {errors: ['Is not a valid email']});
     }
 
-    const requestId = uuidv4();
+    let existsEmail: EmailValidationResult;
+    try {
+        existsEmail = await findValidationResultByEmail(email);
+    } catch (err) {
+        return createResponse(HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+
+    const requestId = existsEmail ? existsEmail.requestId : uuidv4();
+
     try {
         await saveValidationResult({
             requestId,
@@ -39,8 +50,11 @@ export const handler = async (event: { body: any; }): Promise<EmailValidationRes
         return createResponse(201, {requestId});
     } catch (err) {
         console.error(`Error sending message to SQS requestId=${requestId}, error: ${err}`);
+        try {
+            await updateValidationResult(email, 0, ValidationStatus.FAILED);
+        } catch (err) {
+            console.error(`Error to mark as FAILED email: ${email}, error: ${err}`);
+        }
         return createResponse(HttpStatus.INTERNAL_SERVER_ERROR);
-    } finally {
-        await updateValidationResult(email, 0, ValidationStatus.FAILED);
     }
 }

@@ -1,6 +1,6 @@
 import {updateValidationResult} from '../../../../shared/services/dynamo.service';
 import {EmailValidationStep} from "../../../../shared/interfaces";
-import {ValidationStatus} from "../../../../shared/enums/validation-status.enum";
+import {ValidationStatus} from "../../../../shared/enums";
 
 export const handler = async (event: EmailValidationStep[]): Promise<void> => {
     const mxResult = event[0];

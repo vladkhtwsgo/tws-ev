@@ -1,6 +1,6 @@
-import {EmailValidationRequest, EmailValidationResponse} from "../interfaces";
+import {EmailValidationRequest, EmailValidationResponse} from "../../../shared/interfaces";
 import {v4 as uuidv4} from 'uuid';
-import {saveValidationResult} from "../services/dynamo.service";
+import {saveValidationResult} from "../../../shared/services/dynamo.service";
 import {SQSClient, SendMessageCommand} from '@aws-sdk/client-sqs';
 
 const sqsClient = new SQSClient({region: process.env.AWS_REGION || 'us-east-1'});

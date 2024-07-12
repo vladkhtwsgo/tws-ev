@@ -1,8 +1,8 @@
-import {validateMx} from "../../services/email.service";
+import {validateMx} from "../../../../shared/services/email.service";
 import {
     EmailValidationRequest,
     EmailValidationStep
-} from "../../interfaces";
+} from "../../../../shared/interfaces";
 
 export const handler = async (event: EmailValidationRequest): Promise<EmailValidationStep> => {
     const {email} = event;

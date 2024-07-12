@@ -134,7 +134,7 @@ export class TwsEvStack extends cdk.Stack {
         const initiateValidationLambda = new NodejsFunction(this, 'InitiateValidationLambda', {
             runtime: lambda.Runtime.NODEJS_20_X,
             handler: 'handler',
-            entry: path.join(__dirname, '../lambda/initiate-validation/handler.ts'),
+            entry: path.join(__dirname, '../lambda/functions/validation/initiate-validation/handler.ts'),
             environment: {
                 QUEUE_URL: queue.queueUrl,
                 VALIDATION_RESULTS_TABLE: validationResultsTable.tableName,
@@ -144,7 +144,7 @@ export class TwsEvStack extends cdk.Stack {
         const checkStatusLambda = new NodejsFunction(this, 'CheckStatusLambda', {
             runtime: lambda.Runtime.NODEJS_20_X,
             handler: 'handler',
-            entry: path.join(__dirname, '../lambda/check-status/handler.ts'),
+            entry: path.join(__dirname, '../lambda/functions/validation/check-status/handler.ts'),
             environment: {
                 VALIDATION_RESULTS_TABLE: validationResultsTable.tableName,
             },
@@ -153,7 +153,7 @@ export class TwsEvStack extends cdk.Stack {
         const mxValidatorLambda = new NodejsFunction(this, 'MxValidatorLambda', {
             runtime: lambda.Runtime.NODEJS_20_X,
             handler: 'handler',
-            entry: path.join(__dirname, '../lambda/validators/mx/handler.ts'),
+            entry: path.join(__dirname, '../lambda/functions/validation/email-steps/mx-validator/handler.ts'),
             environment: {
                 VALIDATION_RESULTS_TABLE: validationResultsTable.tableName,
             },
@@ -162,16 +162,16 @@ export class TwsEvStack extends cdk.Stack {
         const cnameValidatorLambda = new NodejsFunction(this, 'CnameValidatorLambda', {
             runtime: lambda.Runtime.NODEJS_20_X,
             handler: 'handler',
-            entry: path.join(__dirname, '../lambda/validators/cname/handler.ts'),
+            entry: path.join(__dirname, '../lambda/functions/validation/email-steps/cname-validator/handler.ts'),
             environment: {
                 VALIDATION_RESULTS_TABLE: validationResultsTable.tableName,
             },
         });
 
-        const aggregateResultsLambda = new NodejsFunction(this, 'AggregateResultsLambda', {
+        const resultAggregatorLambda = new NodejsFunction(this, 'ResultAggregatorLambda', {
             runtime: lambda.Runtime.NODEJS_20_X,
             handler: 'index.handler',
-            entry: path.join(__dirname, '../lambda/validators/aggregate-results/handler.ts'),
+            entry: path.join(__dirname, '../lambda/functions/validation/email-steps/result-aggregator/handler.ts'),
             environment: {
                 VALIDATION_RESULTS_TABLE: validationResultsTable.tableName,
             },
@@ -182,7 +182,7 @@ export class TwsEvStack extends cdk.Stack {
         validationResultsTable.grantReadWriteData(checkStatusLambda);
         validationResultsTable.grantReadWriteData(mxValidatorLambda);
         validationResultsTable.grantReadWriteData(cnameValidatorLambda);
-        validationResultsTable.grantReadWriteData(aggregateResultsLambda);
+        validationResultsTable.grantReadWriteData(resultAggregatorLambda);
 
         // Step Function tasks
         const mxValidationTask = new tasks.LambdaInvoke(this, 'MX Validation', {
@@ -200,7 +200,7 @@ export class TwsEvStack extends cdk.Stack {
             .branch(cnameValidationTask)
 
         const aggregateResultsTask = new tasks.LambdaInvoke(this, 'Aggregate Results', {
-            lambdaFunction: aggregateResultsLambda,
+            lambdaFunction: resultAggregatorLambda,
             inputPath: '$',
             outputPath: '$.Payload',
         });
@@ -216,7 +216,7 @@ export class TwsEvStack extends cdk.Stack {
         const sqsToStepFunctionLambda = new NodejsFunction(this, 'SqsToStepFunctionLambda', {
             runtime: lambda.Runtime.NODEJS_20_X,
             handler: 'handler',
-            entry: path.join(__dirname, '../lambda/sqs-to-stepfunction/handler.ts'),
+            entry: path.join(__dirname, '../lambda/functions/validation/sqs-to-stepfunction/handler.ts'),
             environment: {
                 STATE_MACHINE_ARN: stateMachine.stateMachineArn,
             },

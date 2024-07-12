@@ -16,7 +16,7 @@ AWS CDK project for email validation and user registration with SSO (Google, Fac
 - Request to start validation
 ```shell
 POST https://{your_gw_endpoint}.execute-api.us-east-1.amazonaws.com/prod/validate
-Authorization: Bearer 123
+Authorization: {id_token_from_ouauth(hosted_UI cognito section)}
 Content-Type: application/json
 
 {
@@ -32,6 +32,7 @@ example of response
 - Check the status of validation and result
 ```shell
 GET https://k40vx6ypq7.execute-api.us-east-1.amazonaws.com/prod/validate/c4a8c3d9-4e10-433f-8bbd-de1aa61de018
+Authorization: {id_token_from_ouauth(hosted_UI cognito section)}
 Accept: application/json
 ```
 example of response
@@ -70,8 +71,4 @@ This is Default CDK template but with some changes.
      |--/dynamo.service
      |--/email.service
 ```
-
-
-//TODO
-Enable auth for endpoints(just removing the comments)
 

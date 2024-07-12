@@ -68,6 +68,20 @@ export class TwsEvStack extends cdk.Stack {
                 cognito.UserPoolClientIdentityProvider.GOOGLE,
                 cognito.UserPoolClientIdentityProvider.FACEBOOK,
             ],
+            oAuth: {
+                flows: {
+                    authorizationCodeGrant: false,
+                    implicitCodeGrant: true,
+                    clientCredentials: false,
+                },
+                scopes: [
+                    cognito.OAuthScope.OPENID,
+                    cognito.OAuthScope.EMAIL,
+                    cognito.OAuthScope.PROFILE,
+                ],
+                callbackUrls: ['http://localhost'], //just for test it should be from deploy params when we have UI
+                logoutUrls: ['http://localhost'],
+            },
         });
 
         // Identity pool
@@ -104,18 +118,17 @@ export class TwsEvStack extends cdk.Stack {
             roles: {authenticated: authenticatedRole.roleArn},
         });
 
-        //Temporary disable auth to easy test. Uncomment later
         // Cognito authorizer
-        // const authorizer = new apigateway.CognitoUserPoolsAuthorizer(this, 'Authorizer', {
-        //     cognitoUserPools: [userPool],
-        // });
+        const authorizer = new apigateway.CognitoUserPoolsAuthorizer(this, 'Authorizer', {
+            cognitoUserPools: [userPool],
+        });
         // // Cognito User Pool Domain
-        // const userPoolDomain = new cognito.UserPoolDomain(this, 'UserPoolDomain', {
-        //     userPool,
-        //     cognitoDomain: {
-        //         domainPrefix: domainPrefixParam.valueAsString, // Use the parameter value
-        //     },
-        // });
+        const userPoolDomain = new cognito.UserPoolDomain(this, 'UserPoolDomain', {
+            userPool,
+            cognitoDomain: {
+                domainPrefix: domainPrefixParam.valueAsString, // Use the parameter value
+            },
+        });
 
         // Lambda functions
         const initiateValidationLambda = new NodejsFunction(this, 'InitiateValidationLambda', {
@@ -252,9 +265,8 @@ export class TwsEvStack extends cdk.Stack {
         emailValidationResource.addMethod('POST', new apigateway.LambdaIntegration(initiateValidationLambda, {
             proxy: true,
         }), {
-            //Temporary disable auth to easy test. Uncomment later
-            // authorizer,
-            // authorizationType: apigateway.AuthorizationType.COGNITO,
+            authorizer,
+            authorizationType: apigateway.AuthorizationType.COGNITO,
             methodResponses: [
                 {
                     statusCode: '200',
@@ -267,9 +279,8 @@ export class TwsEvStack extends cdk.Stack {
         });
         const checkStatusResource = emailValidationResource.addResource('{requestId}');
         checkStatusResource.addMethod('GET', new apigateway.LambdaIntegration(checkStatusLambda, {proxy: true,}), {
-            //Temporary disable auth to easy test. Uncomment later
-            // authorizer,
-            // authorizationType: apigateway.AuthorizationType.COGNITO,
+            authorizer,
+            authorizationType: apigateway.AuthorizationType.COGNITO,
         });//Just for example as proxy mode to pass all responses from lambda
     }
 }

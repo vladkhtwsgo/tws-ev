@@ -6,12 +6,13 @@ import {
 
 export const handler = async (event: EmailValidationRequest): Promise<EmailValidationStep> => {
     const {email} = event;
-
+    let points = 5;
     try {
         const isValid = await validateMx(email);
-        return {email, valid: isValid, validator: 'mx'};
+        points = isValid ? 10 : 0
+        return {email, points, validator: 'mx'};
     } catch (err) {
-        console.error('Error validating email mx record', err);
-        return {email, valid: false, validator: 'cname', error: 'Error validating mx'};
+        console.error(`Error validating email mx record for email: ${email}, error: `, err);
+        return {email, points, validator: 'cname', error: 'Error validating mx'};
     }
 }

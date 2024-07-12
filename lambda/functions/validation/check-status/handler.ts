@@ -1,37 +1,23 @@
-import {EmailValidationResponse, EmailValidationStep} from "../../../shared/interfaces";
+import {EmailValidationResponse} from "../../../shared/interfaces";
 import {findValidationResultByRequestId} from "../../../shared/services/dynamo.service";
 import {EmailNotFoundException} from "../../../shared/exceptions/email-not-found.exception";
+import {createResponse} from "../../../shared/utils";
+import {HttpStatus} from "../../../shared/enums";
 
 export const handler = async (event: any): Promise<EmailValidationResponse> => {
     const requestId = event.pathParameters?.requestId;
     if (!requestId) {
-        return {
-            statusCode: 400,
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({error: 'Missing requestId in path parameters'}),
-        };
+        return createResponse(HttpStatus.BAD_REQUEST);
     }
 
     try {
-        const data = await findValidationResultByRequestId(requestId);
-        return {
-            statusCode: 200,
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify(data)
-        }
+        const validationResult = await findValidationResultByRequestId(requestId);
+        return createResponse(HttpStatus.OK, validationResult);
     } catch (err) {
         console.log(`Error check validation result for requestId: ${requestId} error:`, err);
         if (err instanceof EmailNotFoundException) {
-            return {
-                statusCode: 400,
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({})
-            }
+            return createResponse(HttpStatus.NOT_FOUND);
         }
-        return {
-            statusCode: 500,
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({error: 'Something went wrong'}),
-        };
+        return createResponse(HttpStatus.INTERNAL_SERVER_ERROR);
     }
 }

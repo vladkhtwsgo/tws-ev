@@ -1,6 +1,6 @@
 import {EmailValidationResponse} from "../../../shared/interfaces";
 import {findValidationResultByRequestId} from "../../../shared/services/dynamo.service";
-import {EmailNotFoundException} from "../../../shared/exceptions/email-not-found.exception";
+import {EmailNotFoundException} from "../../../shared/exceptions";
 import {createResponse} from "../../../shared/utils";
 import {HttpStatus} from "../../../shared/enums";
 

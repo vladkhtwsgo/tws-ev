@@ -1,7 +1,7 @@
 import {DynamoDBClient} from "@aws-sdk/client-dynamodb";
 import {DynamoDBDocumentClient, GetCommand, PutCommand, QueryCommand, UpdateCommand} from "@aws-sdk/lib-dynamodb";
-import {EmailNotFoundException} from "../exceptions/email-not-found.exception";
-import {EmailValidationResult} from "../interfaces/email-validation.interfaces";
+import {EmailNotFoundException} from "../exceptions";
+import {EmailValidationResult} from "../interfaces";
 
 const client = new DynamoDBClient({});
 const dynamo = DynamoDBDocumentClient.from(client);

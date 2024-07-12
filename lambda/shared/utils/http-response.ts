@@ -1,4 +1,4 @@
-import {EmailValidationResponse} from "../interfaces/email-validation.interfaces";
+import {EmailValidationResponse} from "../interfaces";
 import {ErrorMessage, HttpStatus} from "../enums";
 
 export const createResponse = (statusCode: number, body: Record<string, any> = {}): EmailValidationResponse => {

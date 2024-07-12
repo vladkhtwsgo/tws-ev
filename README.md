@@ -8,10 +8,10 @@ AWS CDK project for email validation and user registration with SSO (Google, Fac
 
 ## Steps to deploy
 
-1. npm install
-2. npm run build
-3. npx cdk deploy --profile {your_aws_profile_with_good_permissions} --parameters
-   DomainPrefix={uniq_domain_prefix_for_cognito}
+1. cp.env.example .env and fill the variables (for local testing enough to COGNITO_DOMAIN_PREFIX)
+2. npm install
+3. npm run build
+4. npx cdk deploy --profile {your_aws_profile_with_good_permissions}
 
 ## Usage
 

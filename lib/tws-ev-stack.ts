@@ -10,40 +10,48 @@ import * as tasks from 'aws-cdk-lib/aws-stepfunctions-tasks';
 import * as sqs from 'aws-cdk-lib/aws-sqs';
 import * as path from 'path';
 import {NodejsFunction} from "aws-cdk-lib/aws-lambda-nodejs";
+import * as dotenv from 'dotenv';
+
+dotenv.config();
+
+// Helper function to retrieve and validate environment variables
+function getEnvVariable(name: string): string {
+    const value = process.env[name];
+    if (!value) {
+        throw new Error(`Environment variable "${name}" is not defined`);
+    }
+    return value;
+}
 
 export class TwsEvStack extends cdk.Stack {
     constructor(scope: Construct, id: string, props?: cdk.StackProps) {
         super(scope, id, props);
 
-        // Define Parameters
-        const domainPrefixParam = new cdk.CfnParameter(this, 'DomainPrefix', {
-            type: 'String',
-            description: 'The unique prefix for the Cognito domain',
-        });
+        // Retrieve and validate environment variables. I use .env because i want to share this github repo
+        const cognitoDomainPrefix = getEnvVariable('COGNITO_DOMAIN_PREFIX');
+        const googleClientId = getEnvVariable('GOOGLE_CLIENT_ID');
+        const googleClientSecret = getEnvVariable('GOOGLE_CLIENT_SECRET');
+        const facebookClientId = getEnvVariable('FACEBOOK_CLIENT_ID');
+        const facebookClientSecret = getEnvVariable('FACEBOOK_CLIENT_SECRET');
 
         // DynamoDB table for storing validation results
         const validationResultsTable = new dynamodb.Table(this, 'ValidationResultsTable', {
             partitionKey: {name: 'email', type: dynamodb.AttributeType.STRING},
         });
-        // Add Global Secondary Index (GSI) for requestId
         validationResultsTable.addGlobalSecondaryIndex({
             indexName: 'RequestIdIndex',
             partitionKey: {name: 'requestId', type: dynamodb.AttributeType.STRING},
         });
 
-        // Create an SQS queue
-        const queue = new sqs.Queue(this, 'EmailValidationQueue');
-
-        // Cognito User Pool
+        // Cognito User Pool and Identity Providers
         const userPool = new cognito.UserPool(this, 'UserPool', {
             selfSignUpEnabled: true,
             signInAliases: {email: true},
         });
 
-        // Google and Facebook identity providers
         const googleProvider = new cognito.UserPoolIdentityProviderGoogle(this, 'Google', {
-            clientId: 'GOOGLE_CLIENT_ID',
-            clientSecret: 'GOOGLE_CLIENT_SECRET',
+            clientId: googleClientId,
+            clientSecret: googleClientSecret,
             userPool,
             attributeMapping: {
                 email: cognito.ProviderAttribute.GOOGLE_EMAIL,
@@ -52,8 +60,8 @@ export class TwsEvStack extends cdk.Stack {
         });
 
         const facebookProvider = new cognito.UserPoolIdentityProviderFacebook(this, 'Facebook', {
-            clientId: 'FACEBOOK_CLIENT_ID',
-            clientSecret: 'FACEBOOK_CLIENT_SECRET',
+            clientId: facebookClientId,
+            clientSecret: facebookClientSecret,
             userPool,
             attributeMapping: {
                 email: cognito.ProviderAttribute.FACEBOOK_EMAIL,
@@ -61,10 +69,11 @@ export class TwsEvStack extends cdk.Stack {
             },
         });
 
-        // App client
+        // Cognito App Client
         const userPoolClient = new cognito.UserPoolClient(this, 'UserPoolClient', {
             userPool,
             supportedIdentityProviders: [
+                cognito.UserPoolClientIdentityProvider.COGNITO,
                 cognito.UserPoolClientIdentityProvider.GOOGLE,
                 cognito.UserPoolClientIdentityProvider.FACEBOOK,
             ],
@@ -75,6 +84,7 @@ export class TwsEvStack extends cdk.Stack {
                     clientCredentials: false,
                 },
                 scopes: [
+                    cognito.OAuthScope.COGNITO_ADMIN, //just to give your access to all the User Pool APIs
                     cognito.OAuthScope.OPENID,
                     cognito.OAuthScope.EMAIL,
                     cognito.OAuthScope.PROFILE,
@@ -84,7 +94,7 @@ export class TwsEvStack extends cdk.Stack {
             },
         });
 
-        // Identity pool
+        // Cognito Identity Pool
         const identityPool = new cognito.CfnIdentityPool(this, 'IdentityPool', {
             allowUnauthenticatedIdentities: false,
             cognitoIdentityProviders: [{
@@ -93,7 +103,7 @@ export class TwsEvStack extends cdk.Stack {
             }],
         });
 
-        // Authenticated role
+        // Authenticated role for Identity Pool
         const authenticatedRole = new iam.Role(this, 'CognitoDefaultAuthenticatedRole', {
             assumedBy: new iam.FederatedPrincipal('cognito-identity.amazonaws.com', {
                 'StringEquals': {
@@ -126,15 +136,18 @@ export class TwsEvStack extends cdk.Stack {
         const userPoolDomain = new cognito.UserPoolDomain(this, 'UserPoolDomain', {
             userPool,
             cognitoDomain: {
-                domainPrefix: domainPrefixParam.valueAsString, // Use the parameter value
+                domainPrefix: cognitoDomainPrefix
             },
         });
 
-        // Lambda functions
+        // Create an SQS queue
+        const queue = new sqs.Queue(this, 'EmailValidationQueue');
+
+        // Lambda functions for validation steps
         const initiateValidationLambda = new NodejsFunction(this, 'InitiateValidationLambda', {
             runtime: lambda.Runtime.NODEJS_20_X,
             handler: 'handler',
-            entry: path.join(__dirname, '../lambda/initiate-validation/handler.ts'),
+            entry: path.join(__dirname, '../lambda/functions/validation/initiate-validation/handler.ts'),
             environment: {
                 QUEUE_URL: queue.queueUrl,
                 VALIDATION_RESULTS_TABLE: validationResultsTable.tableName,
@@ -144,7 +157,7 @@ export class TwsEvStack extends cdk.Stack {
         const checkStatusLambda = new NodejsFunction(this, 'CheckStatusLambda', {
             runtime: lambda.Runtime.NODEJS_20_X,
             handler: 'handler',
-            entry: path.join(__dirname, '../lambda/check-status/handler.ts'),
+            entry: path.join(__dirname, '../lambda/functions/validation/check-status/handler.ts'),
             environment: {
                 VALIDATION_RESULTS_TABLE: validationResultsTable.tableName,
             },
@@ -153,7 +166,7 @@ export class TwsEvStack extends cdk.Stack {
         const mxValidatorLambda = new NodejsFunction(this, 'MxValidatorLambda', {
             runtime: lambda.Runtime.NODEJS_20_X,
             handler: 'handler',
-            entry: path.join(__dirname, '../lambda/validators/mx/handler.ts'),
+            entry: path.join(__dirname, '../lambda/functions/validation/email-steps/mx-validator/handler.ts'),
             environment: {
                 VALIDATION_RESULTS_TABLE: validationResultsTable.tableName,
             },
@@ -162,29 +175,29 @@ export class TwsEvStack extends cdk.Stack {
         const cnameValidatorLambda = new NodejsFunction(this, 'CnameValidatorLambda', {
             runtime: lambda.Runtime.NODEJS_20_X,
             handler: 'handler',
-            entry: path.join(__dirname, '../lambda/validators/cname/handler.ts'),
+            entry: path.join(__dirname, '../lambda/functions/validation/email-steps/cname-validator/handler.ts'),
             environment: {
                 VALIDATION_RESULTS_TABLE: validationResultsTable.tableName,
             },
         });
 
-        const aggregateResultsLambda = new NodejsFunction(this, 'AggregateResultsLambda', {
+        const resultAggregatorLambda = new NodejsFunction(this, 'ResultAggregatorLambda', {
             runtime: lambda.Runtime.NODEJS_20_X,
             handler: 'index.handler',
-            entry: path.join(__dirname, '../lambda/validators/aggregate-results/handler.ts'),
+            entry: path.join(__dirname, '../lambda/functions/validation/email-steps/result-aggregator/handler.ts'),
             environment: {
                 VALIDATION_RESULTS_TABLE: validationResultsTable.tableName,
             },
         });
 
-        // Grant Lambda permissions to DynamoDB
+        // Grant Lambda permissions to access DynamoDB
         validationResultsTable.grantReadWriteData(initiateValidationLambda);
         validationResultsTable.grantReadWriteData(checkStatusLambda);
         validationResultsTable.grantReadWriteData(mxValidatorLambda);
         validationResultsTable.grantReadWriteData(cnameValidatorLambda);
-        validationResultsTable.grantReadWriteData(aggregateResultsLambda);
+        validationResultsTable.grantReadWriteData(resultAggregatorLambda);
 
-        // Step Function tasks
+        // Step Function tasks and definition
         const mxValidationTask = new tasks.LambdaInvoke(this, 'MX Validation', {
             lambdaFunction: mxValidatorLambda,
             outputPath: '$.Payload',
@@ -200,12 +213,11 @@ export class TwsEvStack extends cdk.Stack {
             .branch(cnameValidationTask)
 
         const aggregateResultsTask = new tasks.LambdaInvoke(this, 'Aggregate Results', {
-            lambdaFunction: aggregateResultsLambda,
+            lambdaFunction: resultAggregatorLambda,
             inputPath: '$',
             outputPath: '$.Payload',
         });
 
-        // Step Function definition
         const definition = parallelValidation
             .next(aggregateResultsTask);
 
@@ -216,7 +228,7 @@ export class TwsEvStack extends cdk.Stack {
         const sqsToStepFunctionLambda = new NodejsFunction(this, 'SqsToStepFunctionLambda', {
             runtime: lambda.Runtime.NODEJS_20_X,
             handler: 'handler',
-            entry: path.join(__dirname, '../lambda/sqs-to-stepfunction/handler.ts'),
+            entry: path.join(__dirname, '../lambda/functions/validation/sqs-to-stepfunction/handler.ts'),
             environment: {
                 STATE_MACHINE_ARN: stateMachine.stateMachineArn,
             },
@@ -236,12 +248,11 @@ export class TwsEvStack extends cdk.Stack {
             batchSize: 1, // Adjust batch size as needed
         });
 
-        // API Gateway
+        // API Gateway and integration
         const api = new apigateway.RestApi(this, 'EmailValidationApi', {
             restApiName: 'Email Validation Service',
         });
 
-        // Define the request model (JSON Schema)
         const requestModel = new apigateway.Model(this, 'RequestModel', {
             restApi: api,
             contentType: 'application/json',
@@ -254,7 +265,6 @@ export class TwsEvStack extends cdk.Stack {
             },
         });
 
-        // Define the request validator
         const requestValidator = new apigateway.RequestValidator(this, 'RequestValidator', {
             restApi: api,
             validateRequestBody: true,

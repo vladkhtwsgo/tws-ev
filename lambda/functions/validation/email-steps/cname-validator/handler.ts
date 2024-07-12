@@ -1,10 +1,8 @@
-import {validateCname} from "../../services/email.service";
+import {validateCname} from "../../../../shared/services/email.service";
 import {
     EmailValidationRequest,
-    EmailValidationResponse,
-    EmailValidationResult,
     EmailValidationStep
-} from "../../interfaces";
+} from "../../../../shared/interfaces";
 
 export const handler = async (event: EmailValidationRequest): Promise<EmailValidationStep> => {
     const {email} = event;

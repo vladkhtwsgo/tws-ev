@@ -1,19 +1,9 @@
 import {DynamoDBClient} from "@aws-sdk/client-dynamodb";
 import {DynamoDBDocumentClient, GetCommand, PutCommand, QueryCommand, UpdateCommand} from "@aws-sdk/lib-dynamodb";
-import {EmailValidationResponse, EmailValidationResult, User} from "../interfaces";
 import {EmailNotFoundException} from "../exceptions/email-not-found.exception";
 
 const client = new DynamoDBClient({});
 const dynamo = DynamoDBDocumentClient.from(client);
-
-export const saveUser = async (user: User): Promise<void> => {
-    const params = {
-        TableName: process.env.TABLE_NAME!,
-        Item: user,
-    };
-
-    await dynamo.send(new PutCommand(params));
-};
 
 export const saveValidationResult = async (data: {
     requestId: string,

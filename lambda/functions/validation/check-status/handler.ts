@@ -1,6 +1,6 @@
-import {EmailValidationResponse, EmailValidationStep} from "../interfaces";
-import {findValidationResultByRequestId} from "../services/dynamo.service";
-import {EmailNotFoundException} from "../exceptions/email-not-found.exception";
+import {EmailValidationResponse, EmailValidationStep} from "../../../shared/interfaces";
+import {findValidationResultByRequestId} from "../../../shared/services/dynamo.service";
+import {EmailNotFoundException} from "../../../shared/exceptions/email-not-found.exception";
 
 export const handler = async (event: any): Promise<EmailValidationResponse> => {
     const requestId = event.pathParameters?.requestId;

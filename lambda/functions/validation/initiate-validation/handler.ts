@@ -23,10 +23,11 @@ export const handler = async (event: { body: any; }): Promise<EmailValidationRes
         return createResponse(HttpStatus.BAD_REQUEST, {errors: ['Is not a valid email']});
     }
 
-    let existsEmail: EmailValidationResult;
+    let existsEmail: EmailValidationResult | null;
     try {
         existsEmail = await findValidationResultByEmail(email);
     } catch (err) {
+        console.log(`Error check validation result for requestId: ${email}, error:`, err);
         return createResponse(HttpStatus.INTERNAL_SERVER_ERROR);
     }
 

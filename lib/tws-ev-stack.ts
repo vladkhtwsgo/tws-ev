@@ -73,9 +73,7 @@ export class TwsEvStack extends cdk.Stack {
         const userPoolClient = new cognito.UserPoolClient(this, 'UserPoolClient', {
             userPool,
             supportedIdentityProviders: [
-                cognito.UserPoolClientIdentityProvider.COGNITO,
-                cognito.UserPoolClientIdentityProvider.GOOGLE,
-                cognito.UserPoolClientIdentityProvider.FACEBOOK,
+                cognito.UserPoolClientIdentityProvider.COGNITO
             ],
             oAuth: {
                 flows: {
@@ -93,6 +91,8 @@ export class TwsEvStack extends cdk.Stack {
                 logoutUrls: ['http://localhost'],
             },
         });
+
+        userPoolClient.node.addDependency(googleProvider, facebookProvider);
 
         // Cognito Identity Pool
         const identityPool = new cognito.CfnIdentityPool(this, 'IdentityPool', {

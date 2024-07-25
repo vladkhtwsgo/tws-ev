@@ -74,8 +74,6 @@ export class TwsEvStack extends cdk.Stack {
             userPool,
             supportedIdentityProviders: [
                 cognito.UserPoolClientIdentityProvider.COGNITO,
-                cognito.UserPoolClientIdentityProvider.GOOGLE,
-                cognito.UserPoolClientIdentityProvider.FACEBOOK,
             ],
             oAuth: {
                 flows: {
@@ -93,6 +91,9 @@ export class TwsEvStack extends cdk.Stack {
                 logoutUrls: ['http://localhost'],
             },
         });
+        // Add dependencies to ensure the providers are created first
+        // Issue[fix]: https://github.com/aws/aws-cdk/issues/15850
+        userPoolClient.node.addDependency(googleProvider, facebookProvider);
 
         // Cognito Identity Pool
         const identityPool = new cognito.CfnIdentityPool(this, 'IdentityPool', {

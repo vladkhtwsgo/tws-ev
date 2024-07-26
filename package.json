@@ -23,6 +23,8 @@
   },
   "dependencies": {
     "@aws-sdk/client-dynamodb": "^3.613.0",
+    "@aws-sdk/client-timestream-write": "^3.616.0",
+    "@aws-sdk/client-timestream-query": "^3.620.0",
     "@aws-sdk/client-sfn": "^3.613.0",
     "@aws-sdk/client-sqs": "^3.613.0",
     "@aws-sdk/lib-dynamodb": "^3.613.0",

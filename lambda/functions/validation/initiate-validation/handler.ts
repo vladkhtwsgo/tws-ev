@@ -23,13 +23,12 @@ export const handler = async (event: { body: any; }): Promise<EmailValidationRes
         return createResponse(HttpStatus.BAD_REQUEST, {errors: ['Is not a valid email']});
     }
 
-    let existsEmail: EmailValidationResult;
+    let existsEmail: EmailValidationResult | null = null
     try {
         existsEmail = await findValidationResultByEmail(email);
     } catch (err) {
         return createResponse(HttpStatus.INTERNAL_SERVER_ERROR);
     }
-
     const requestId = existsEmail ? existsEmail.requestId : uuidv4();
 
     try {

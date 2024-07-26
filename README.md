@@ -1,5 +1,8 @@
 AWS CDK project for email validation and user registration with SSO (Google, Facebook).
 
+## Templates based repo (outdated version of the repo below):
+https://bitbucket.org/teamworkspirit/aws-email-validator/src/development/
+
 ## Prerequisites
 
 - AWS CLI configured

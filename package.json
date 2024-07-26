@@ -1,6 +1,11 @@
 {
   "name": "tws-ev",
-  "version": "0.1.0",
+  "version": "0.1.1",
+  "contributors": [
+    {
+      "name": "SergiyShegeda",
+      "email": "sergiy.shegeda@gmail.com"
+  ],
   "bin": {
     "public": "bin/tws-ev.ts"
   },

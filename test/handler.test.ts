@@ -1,13 +1,14 @@
-import { handler } from './path/to/your/lambda/function'; // Adjust the import path
-import { findValidationResultByRequestId } from "../../../shared/services/dynamo.service";
-import { findLogsByRequestId } from "../../../shared/services/timestream.service";
-import { createResponse } from "../../../shared/utils";
-import { EmailNotFoundException } from "../../../shared/exceptions";
-import { HttpStatus } from "../../../shared/enums";
+import { handler } from '../lambda/functions/validation/check-status/handler';
+import { createResponse } from "../lambda/shared/utils";
+import { findValidationResultByRequestId } from "../lambda/shared/services/dynamo.service";
+import { findLogsByRequestId } from "../lambda/shared/services/timestream.service";
+import {HttpStatus, ValidationStatus} from "../lambda/shared/enums";
+import { EmailNotFoundException } from "../lambda/shared/exceptions";
+import { EmailValidationResult, LogEntry } from "../lambda/shared/interfaces";
 
-jest.mock('../../../shared/services/dynamo.service');
-jest.mock('../../../shared/services/timestream.service');
-jest.mock('../../../shared/utils');
+jest.mock('../lambda/shared/services/dynamo.service');
+jest.mock('../lambda/shared/services/timestream.service');
+jest.mock('../lambda/shared/utils');
 
 const mockCreateResponse = createResponse as jest.MockedFunction<typeof createResponse>;
 const mockFindValidationResultByRequestId = findValidationResultByRequestId as jest.MockedFunction<typeof findValidationResultByRequestId>;
@@ -30,12 +31,35 @@ describe('Lambda Function Handler', () => {
     it('should return OK and the validation result with trace log', async () => {
         const requestId = '123';
         const event = { pathParameters: { requestId } };
-        const mockValidationResult = { id: requestId, someField: 'someValue' };
-        const mockTraceLog = { log: 'trace log' };
+        const mockValidationResult: EmailValidationResult= {
+            email: 'test@example.com',
+            requestId: requestId,
+            score: 18,
+            validationStatus: ValidationStatus.COMPLETED,
+            traceLog: [{
+                requestId,
+                validator: 'regexp',
+                message: 'Log message',
+                timestamp: new Date().toISOString(),
+                points: 10
+            }]
+        };
+        const mockTraceLog: LogEntry[] = [
+            {
+                requestId,
+                validator: 'regexp',
+                message: 'Log message',
+                timestamp: new Date().toISOString(),
+                points: 10
+            }
+        ];
 
         mockFindValidationResultByRequestId.mockResolvedValueOnce(mockValidationResult);
         mockFindLogsByRequestId.mockResolvedValueOnce(mockTraceLog);
-        mockCreateResponse.mockReturnValueOnce({ statusCode: HttpStatus.OK, body: JSON.stringify({ ...mockValidationResult, traceLog: mockTraceLog }) });
+        mockCreateResponse.mockReturnValueOnce({
+            statusCode: HttpStatus.OK,
+            body: JSON.stringify({ ...mockValidationResult, traceLog: mockTraceLog })
+        });
 
         const response = await handler(event);
 

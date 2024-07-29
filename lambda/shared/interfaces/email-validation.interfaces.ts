@@ -29,7 +29,7 @@ interface Datum {
     NullValue?: boolean;
 }
 export interface RawLogEntry {
-    Data: Datum[];
+    Data: Array<{ ScalarValue: string } | null>;
 }
 
 export interface LogEntry {

@@ -1,0 +1,130 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="AutoImportSettings">
+    <option name="autoReloadType" value="SELECTIVE" />
+  </component>
+  <component name="ChangeListManager">
+    <list default="true" id="e4b57b72-5ec7-4bcd-8a9e-e3e1870f1345" name="Changes" comment="">
+      <change beforePath="$PROJECT_DIR$/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/package.json" afterDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="MarkdownSettingsMigration">
+    <option name="stateVersion" value="1" />
+  </component>
+  <component name="ProjectColorInfo">{
+  &quot;associatedIndex&quot;: 4
+}</component>
+  <component name="ProjectId" id="2jjsAhfzQr9S86ETY8nfF8iyQ9D" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;RunOnceActivity.OpenProjectViewOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;WebServerToolWindowFactoryState&quot;: &quot;false&quot;,
+    &quot;ignore_missing_gitignore&quot;: &quot;true&quot;,
+    &quot;last_opened_file_path&quot;: &quot;/Users/serhiisheheda/www/js/true-email-serverless/tws-ev&quot;,
+    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
+    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
+    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
+    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
+    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
+    &quot;ts.external.directory.path&quot;: &quot;/Applications/WebStorm.app/Contents/plugins/javascript-impl/jsLanguageServicesImpl/external&quot;,
+    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
+  }
+}</component>
+  <component name="RecentsManager">
+    <key name="CopyFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$" />
+      <recent name="$PROJECT_DIR$/app" />
+      <recent name="$PROJECT_DIR$/front-end" />
+      <recent name="$PROJECT_DIR$/lambda/functions/validation" />
+    </key>
+    <key name="MoveFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/cdk" />
+      <recent name="$PROJECT_DIR$/front-end/cdk" />
+    </key>
+  </component>
+  <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="e4b57b72-5ec7-4bcd-8a9e-e3e1870f1345" name="Changes" comment="" />
+      <created>1721911678958</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1721911678958</updated>
+      <workItem from="1721911680052" duration="23143000" />
+      <workItem from="1721991281311" duration="22549000" />
+      <workItem from="1722242064543" duration="84000" />
+    </task>
+    <servers />
+  </component>
+  <component name="TypeScriptGeneratedFilesManager">
+    <option name="version" value="3" />
+    <option name="exactExcludedFiles">
+      <list>
+        <option value="$PROJECT_DIR$/lambda/shared/enums/validation-status.enum.d.ts" />
+        <option value="$PROJECT_DIR$/lambda/shared/enums/validation-status.enum.js" />
+        <option value="$PROJECT_DIR$/lambda/shared/enums/index.d.ts" />
+        <option value="$PROJECT_DIR$/lambda/shared/enums/error-message.enum.js" />
+        <option value="$PROJECT_DIR$/lambda/shared/enums/http-status.enum.js" />
+        <option value="$PROJECT_DIR$/lambda/shared/enums/index.js" />
+        <option value="$PROJECT_DIR$/lambda/shared/enums/error-message.enum.d.ts" />
+        <option value="$PROJECT_DIR$/lambda/shared/enums/http-status.enum.d.ts" />
+        <option value="$PROJECT_DIR$/lambda/functions/validation/initiate-validation/handler.d.ts" />
+        <option value="$PROJECT_DIR$/lambda/functions/validation/initiate-validation/handler.js" />
+        <option value="$PROJECT_DIR$/lambda/functions/validation/email-steps/cname-validator/handler.d.ts" />
+        <option value="$PROJECT_DIR$/lambda/functions/validation/email-steps/cname-validator/handler.js" />
+        <option value="$PROJECT_DIR$/bin/tws-ev.js" />
+        <option value="$PROJECT_DIR$/bin/tws-ev.d.ts" />
+        <option value="$PROJECT_DIR$/lambda/shared/utils/index.js" />
+        <option value="$PROJECT_DIR$/lambda/shared/utils/email.d.ts" />
+        <option value="$PROJECT_DIR$/lambda/shared/utils/email.js" />
+        <option value="$PROJECT_DIR$/lambda/shared/utils/http-response.d.ts" />
+        <option value="$PROJECT_DIR$/lambda/shared/utils/http-response.js" />
+        <option value="$PROJECT_DIR$/lambda/shared/utils/index.d.ts" />
+        <option value="$PROJECT_DIR$/lambda/shared/interfaces/index.js" />
+        <option value="$PROJECT_DIR$/lambda/shared/interfaces/email-validation.interfaces.js" />
+        <option value="$PROJECT_DIR$/lambda/shared/interfaces/index.d.ts" />
+        <option value="$PROJECT_DIR$/lambda/shared/interfaces/email-validation.interfaces.d.ts" />
+        <option value="$PROJECT_DIR$/lib/tws-ev-stack.js" />
+        <option value="$PROJECT_DIR$/lib/tws-ev-stack.d.ts" />
+        <option value="$PROJECT_DIR$/lambda/functions/validation/check-status/handler.d.ts" />
+        <option value="$PROJECT_DIR$/lambda/functions/validation/check-status/handler.js" />
+        <option value="$PROJECT_DIR$/lambda/functions/validation/email-steps/mx-validator/handler.d.ts" />
+        <option value="$PROJECT_DIR$/lambda/functions/validation/email-steps/mx-validator/handler.js" />
+        <option value="$PROJECT_DIR$/test/public.test.d.ts" />
+        <option value="$PROJECT_DIR$/test/public.test.js" />
+        <option value="$PROJECT_DIR$/lambda/shared/services/dynamo.service.js" />
+        <option value="$PROJECT_DIR$/lambda/shared/services/sqs.service.d.ts" />
+        <option value="$PROJECT_DIR$/lambda/shared/services/sqs.service.js" />
+        <option value="$PROJECT_DIR$/lambda/shared/services/dynamo.service.d.ts" />
+        <option value="$PROJECT_DIR$/lambda/shared/services/validation.service.js" />
+        <option value="$PROJECT_DIR$/lambda/shared/services/validation.service.d.ts" />
+        <option value="$PROJECT_DIR$/lambda/functions/validation/sqs-to-stepfunction/handler.d.ts" />
+        <option value="$PROJECT_DIR$/lambda/functions/validation/sqs-to-stepfunction/handler.js" />
+        <option value="$PROJECT_DIR$/lambda/functions/validation/email-steps/result-aggregator/handler.d.ts" />
+        <option value="$PROJECT_DIR$/lambda/functions/validation/email-steps/result-aggregator/handler.js" />
+        <option value="$PROJECT_DIR$/lambda/shared/exceptions/email-not-found.exception.js" />
+        <option value="$PROJECT_DIR$/lambda/shared/exceptions/index.js" />
+        <option value="$PROJECT_DIR$/lambda/shared/exceptions/cname-not-found.exception.d.ts" />
+        <option value="$PROJECT_DIR$/lambda/shared/exceptions/index.d.ts" />
+        <option value="$PROJECT_DIR$/lambda/shared/exceptions/cname-not-found.exception.js" />
+        <option value="$PROJECT_DIR$/lambda/shared/exceptions/email-not-found.exception.d.ts" />
+        <option value="$PROJECT_DIR$/lambda/functions/validation/get-validation-log/handler.js" />
+        <option value="$PROJECT_DIR$/lambda/functions/validation/get-validation-log/handler.d.ts" />
+        <option value="$PROJECT_DIR$/lambda/functions/validation/get-validation-log/handler.d.ts" />
+        <option value="$PROJECT_DIR$/lambda/functions/validation/get-validation-log/handler.js" />
+      </list>
+    </option>
+  </component>
+</project>

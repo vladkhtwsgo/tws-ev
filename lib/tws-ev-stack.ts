@@ -103,6 +103,12 @@ export class TwsEvStack extends cdk.Stack {
                 callbackUrls: ['http://localhost'], //just for test it should be from deploy params when we have UI
                 logoutUrls: ['http://localhost'],
             },
+            authFlows: {
+                userPassword: true, // Enable USER_PASSWORD_AUTH flow
+                userSrp: true, // Enable SRP flow
+                adminUserPassword: false, // Enable ADMIN_USER_PASSWORD_AUTH flow
+                custom: true, // Enable CUSTOM_AUTH flow
+            }
         });
         // Add dependencies to ensure the providers are created first
         // Issue[fix]: https://github.com/aws/aws-cdk/issues/15850

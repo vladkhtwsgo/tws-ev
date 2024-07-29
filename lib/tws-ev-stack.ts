@@ -4,6 +4,7 @@ import * as cognito from 'aws-cdk-lib/aws-cognito';
 import * as apigateway from 'aws-cdk-lib/aws-apigateway';
 import * as lambda from 'aws-cdk-lib/aws-lambda';
 import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
+import * as timestream from 'aws-cdk-lib/aws-timestream';
 import * as iam from 'aws-cdk-lib/aws-iam';
 import * as sfn from 'aws-cdk-lib/aws-stepfunctions';
 import * as tasks from 'aws-cdk-lib/aws-stepfunctions-tasks';
@@ -43,6 +44,18 @@ export class TwsEvStack extends cdk.Stack {
             partitionKey: {name: 'requestId', type: dynamodb.AttributeType.STRING},
         });
 
+        // Timestream
+        const timeStreamDatabase = new timestream.CfnDatabase(this, 'EmailValidationDatabase', {
+            databaseName: 'EmailValidation',
+        });
+
+        const timeStreamTable = new timestream.CfnTable(this, 'ValidationResultLogsTable', {
+            databaseName: timeStreamDatabase?.databaseName || '',
+            tableName: 'ValidationResults',
+        });
+
+        timeStreamTable.addDependency(timeStreamDatabase);
+
         // Cognito User Pool and Identity Providers
         const userPool = new cognito.UserPool(this, 'UserPool', {
             selfSignUpEnabled: true,
@@ -73,7 +86,7 @@ export class TwsEvStack extends cdk.Stack {
         const userPoolClient = new cognito.UserPoolClient(this, 'UserPoolClient', {
             userPool,
             supportedIdentityProviders: [
-                cognito.UserPoolClientIdentityProvider.COGNITO
+                cognito.UserPoolClientIdentityProvider.COGNITO,
             ],
             oAuth: {
                 flows: {
@@ -97,7 +110,8 @@ export class TwsEvStack extends cdk.Stack {
                 custom: true, // Enable CUSTOM_AUTH flow
             }
         });
-
+        // Add dependencies to ensure the providers are created first
+        // Issue[fix]: https://github.com/aws/aws-cdk/issues/15850
         userPoolClient.node.addDependency(googleProvider, facebookProvider);
 
         // Cognito Identity Pool
@@ -128,6 +142,13 @@ export class TwsEvStack extends cdk.Stack {
             resources: [validationResultsTable.tableArn],
         }));
 
+        authenticatedRole.addToPolicy(new iam.PolicyStatement({
+            effect: iam.Effect.ALLOW,
+            // actions: ['timestream:DescribeEndpoints', 'timestream:WriteRecords', 'timestream:Query','timestream:Select'],
+            actions: ['timestream:*'],
+            resources: ['*'], // All resources
+        }));
+
         // Attach role to identity pool
         new cognito.CfnIdentityPoolRoleAttachment(this, 'IdentityPoolRoleAttachment', {
             identityPoolId: identityPool.ref,
@@ -138,7 +159,7 @@ export class TwsEvStack extends cdk.Stack {
         const authorizer = new apigateway.CognitoUserPoolsAuthorizer(this, 'Authorizer', {
             cognitoUserPools: [userPool],
         });
-        // // Cognito User Pool Domain
+        // Cognito User Pool Domain
         const userPoolDomain = new cognito.UserPoolDomain(this, 'UserPoolDomain', {
             userPool,
             cognitoDomain: {
@@ -157,6 +178,8 @@ export class TwsEvStack extends cdk.Stack {
             environment: {
                 QUEUE_URL: queue.queueUrl,
                 VALIDATION_RESULTS_TABLE: validationResultsTable.tableName,
+                TIMESTREAM_DATABASE_NAME: timeStreamDatabase.databaseName || '',
+                TIMESTREAM_TABLE_NAME: timeStreamTable.tableName || '',
             },
         });
 
@@ -166,6 +189,8 @@ export class TwsEvStack extends cdk.Stack {
             entry: path.join(__dirname, '../lambda/functions/validation/check-status/handler.ts'),
             environment: {
                 VALIDATION_RESULTS_TABLE: validationResultsTable.tableName,
+                TIMESTREAM_DATABASE_NAME: timeStreamDatabase.databaseName || '',
+                TIMESTREAM_TABLE_NAME: timeStreamTable.tableName || '',
             },
         });
 
@@ -175,6 +200,8 @@ export class TwsEvStack extends cdk.Stack {
             entry: path.join(__dirname, '../lambda/functions/validation/email-steps/mx-validator/handler.ts'),
             environment: {
                 VALIDATION_RESULTS_TABLE: validationResultsTable.tableName,
+                TIMESTREAM_DATABASE_NAME: timeStreamDatabase.databaseName || '',
+                TIMESTREAM_TABLE_NAME: timeStreamTable.tableName || '',
             },
         });
 
@@ -184,6 +211,8 @@ export class TwsEvStack extends cdk.Stack {
             entry: path.join(__dirname, '../lambda/functions/validation/email-steps/cname-validator/handler.ts'),
             environment: {
                 VALIDATION_RESULTS_TABLE: validationResultsTable.tableName,
+                TIMESTREAM_DATABASE_NAME: timeStreamDatabase.databaseName || '',
+                TIMESTREAM_TABLE_NAME: timeStreamTable.tableName || '',
             },
         });
 
@@ -193,15 +222,26 @@ export class TwsEvStack extends cdk.Stack {
             entry: path.join(__dirname, '../lambda/functions/validation/email-steps/result-aggregator/handler.ts'),
             environment: {
                 VALIDATION_RESULTS_TABLE: validationResultsTable.tableName,
+                TIMESTREAM_DATABASE_NAME: timeStreamDatabase.databaseName || '',
+                TIMESTREAM_TABLE_NAME: timeStreamTable.tableName || '',
             },
         });
 
-        // Grant Lambda permissions to access DynamoDB
-        validationResultsTable.grantReadWriteData(initiateValidationLambda);
-        validationResultsTable.grantReadWriteData(checkStatusLambda);
-        validationResultsTable.grantReadWriteData(mxValidatorLambda);
-        validationResultsTable.grantReadWriteData(cnameValidatorLambda);
-        validationResultsTable.grantReadWriteData(resultAggregatorLambda);
+        // Grant Lambda functions permissions
+        [initiateValidationLambda, checkStatusLambda, mxValidatorLambda, cnameValidatorLambda, resultAggregatorLambda].forEach(lambdaFunc => {
+            validationResultsTable.grantReadWriteData(lambdaFunc);
+            lambdaFunc.addToRolePolicy(new iam.PolicyStatement({
+                effect: iam.Effect.ALLOW,
+                // actions: [
+                //     'timestream:DescribeEndpoints',
+                //     'timestream:WriteRecords',
+                //     'timestream:Query',
+                //     'timestream:Select',
+                // ],
+                actions: ['timestream:*'],
+                resources: ['*'],// All resources
+            }));
+        });
 
         // Step Function tasks and definition
         const mxValidationTask = new tasks.LambdaInvoke(this, 'MX Validation', {

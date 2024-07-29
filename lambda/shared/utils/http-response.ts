@@ -1,4 +1,4 @@
-import {EmailValidationResponse} from "../interfaces";
+import {EmailValidationResponse, LogEntry, RawLogEntry} from "../interfaces";
 import {ErrorMessage, HttpStatus} from "../enums";
 
 export const createResponse = (statusCode: number, body: Record<string, any> = {}): EmailValidationResponse => {
@@ -19,4 +19,16 @@ export const createResponse = (statusCode: number, body: Record<string, any> = {
         },
         body: JSON.stringify(body)
     };
+};
+export const formatLogs = (logs: RawLogEntry[]): LogEntry[] => {
+    return logs.map(log => {
+        const [requestId, validator, message, , , timestamp, points] = log.Data;
+        return {
+            requestId: requestId?.ScalarValue ?? '',
+            validator: validator?.ScalarValue ?? '',
+            message: message?.ScalarValue ?? '',
+            timestamp: timestamp?.ScalarValue ?? '',
+            points: parseFloat(points?.ScalarValue ?? '0'),
+        };
+    });
 };

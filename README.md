@@ -95,3 +95,5 @@ This is Default CDK template but with some changes.
       |---/...
 ```
 
+Principal schema
+<img width="1085" alt="Screenshot 2024-07-11 at 15 18 41" src="https://github.com/user-attachments/assets/646257a2-3f88-4810-93e4-742511354555">

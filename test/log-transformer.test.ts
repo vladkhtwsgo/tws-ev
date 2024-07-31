@@ -1,5 +1,5 @@
 import {LogEntry, RawLogEntry} from "../lambda/shared/interfaces";
-import {formatLogs} from "../lambda/shared/utils";
+import {transformRawLogs} from "../lambda/shared/utils";
 
 /**
  * Response from Timestream query:s
@@ -22,27 +22,27 @@ import {formatLogs} from "../lambda/shared/utils";
  *   ]
  * }
  */
-describe('formatLogs', () => {
-    it('should format logs correctly with valid input', () => {
+describe('transformRawToEntries', () => {
+    it('should transform raw log entries to LogEntry format', () => {
         const logs: RawLogEntry[] = [
             {
                 Data: [
-                    { ScalarValue: 'req123' },
-                    { ScalarValue: 'validator1' },
-                    { ScalarValue: 'message1' },
-                    null,
-                    { ScalarValue: '2023-01-01T00:00:00Z' },
-                    { ScalarValue: '100.5' },
+                    {ScalarValue: 'req123'},
+                    {ScalarValue: 'validator1'},
+                    {ScalarValue: 'message1'},
+                    undefined,
+                    {ScalarValue: '2023-01-01T00:00:00Z'},
+                    {ScalarValue: '100.5'},
                 ],
             },
             {
                 Data: [
-                    { ScalarValue: 'req456' },
-                    { ScalarValue: 'validator2' },
-                    { ScalarValue: 'message2' },
-                    null,
-                    { ScalarValue: '2023-01-02T00:00:00Z' },
-                    { ScalarValue: '200' },
+                    {ScalarValue: 'req456'},
+                    {ScalarValue: 'validator2'},
+                    {ScalarValue: 'message2'},
+                    undefined,
+                    {ScalarValue: '2023-01-02T00:00:00Z'},
+                    {ScalarValue: '200'},
                 ],
             },
         ];
@@ -64,19 +64,19 @@ describe('formatLogs', () => {
             },
         ];
 
-        expect(formatLogs(logs)).toEqual(expected);
+        expect(transformRawLogs(logs)).toEqual(expected);
     });
 
-    it('should handle missing fields gracefully', () => {
+    it('should handle undefined Data', () => {
         const logs: RawLogEntry[] = [
             {
                 Data: [
-                    null,
-                    { ScalarValue: 'validator1' },
-                    null,
-                    null,
-                    { ScalarValue: '2023-01-01T00:00:00Z' },
-                    null,
+                    undefined,
+                    {ScalarValue: 'validator1'},
+                    undefined,
+                    undefined,
+                    {ScalarValue: '2023-01-01T00:00:00Z'},
+                    undefined,
                 ],
             },
         ];
@@ -91,25 +91,25 @@ describe('formatLogs', () => {
             },
         ];
 
-        expect(formatLogs(logs)).toEqual(expected);
+        expect(transformRawLogs(logs)).toEqual(expected);
     });
 
     it('should handle empty input array', () => {
         const logs: RawLogEntry[] = [];
         const expected: LogEntry[] = [];
-        expect(formatLogs(logs)).toEqual(expected);
+        expect(transformRawLogs(logs)).toEqual(expected);
     });
 
     it('should handle invalid points gracefully', () => {
         const logs: RawLogEntry[] = [
             {
                 Data: [
-                    { ScalarValue: 'req789' },
-                    { ScalarValue: 'validator3' },
-                    { ScalarValue: 'message3' },
-                    null,
-                    { ScalarValue: '2023-01-03T00:00:00Z' },
-                    { ScalarValue: 'invalid_number' },
+                    {ScalarValue: 'req789'},
+                    {ScalarValue: 'validator3'},
+                    {ScalarValue: 'message3'},
+                    undefined,
+                    {ScalarValue: '2023-01-03T00:00:00Z'},
+                    {ScalarValue: 'invalid_number'},
                 ],
             },
         ];
@@ -124,6 +124,6 @@ describe('formatLogs', () => {
             },
         ];
 
-        expect(formatLogs(logs)).toEqual(expected);
+        expect(transformRawLogs(logs)).toEqual(expected);
     });
 });

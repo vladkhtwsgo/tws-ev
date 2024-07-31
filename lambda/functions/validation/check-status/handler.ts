@@ -13,8 +13,7 @@ export const handler = async (event: any): Promise<EmailValidationResponse> => {
 
     try {
         const validationResult = await findValidationResultByRequestId(requestId);
-        const traceLog = await findLogsByRequestId(requestId);
-        validationResult.traceLog = traceLog;
+        validationResult.traceLog = await findLogsByRequestId(requestId);
         return createResponse(HttpStatus.OK, validationResult);
     } catch (err) {
         console.log(`Error check validation result for requestId: ${requestId} error:`, err);

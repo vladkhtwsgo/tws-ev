@@ -1,7 +1,8 @@
-import {ValidationStatus} from "../enums/validation-status.enum";
+import {ValidationStatus} from "../enums";
 
 export interface EmailValidationRequest {
     email: string;
+    requestId: string;
 }
 
 export interface EmailValidationResponse {
@@ -10,17 +11,14 @@ export interface EmailValidationResponse {
     headers?: Record<string, string>;
 }
 
-export interface EmailValidationStep {
-    email: string;
+export interface EmailValidationStep extends EmailValidationRequest {
     validator: 'regexp' | 'mx' | 'cname';
     points: number;
     error?: string
 }
 
-export interface EmailValidationResult {
-    requestId: string;
-    email: string;
+export interface EmailValidationResult extends EmailValidationRequest {
     score: number; //max 20
     validationStatus: ValidationStatus;
-    validationSteps?: EmailValidationStep[]; //TODO:: maybe from timelinedb
+    traceLog?: any[]; //TODO:: maybe from timelinedb
 }

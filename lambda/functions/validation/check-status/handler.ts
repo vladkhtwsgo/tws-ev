@@ -3,6 +3,7 @@ import {findValidationResultByRequestId} from "../../../shared/services/dynamo.s
 import {EmailNotFoundException} from "../../../shared/exceptions";
 import {createResponse} from "../../../shared/utils";
 import {HttpStatus} from "../../../shared/enums";
+import {findLogsByRequestId} from "../../../shared/services/timestream.service";
 
 export const handler = async (event: any): Promise<EmailValidationResponse> => {
     const requestId = event.pathParameters?.requestId;
@@ -12,6 +13,7 @@ export const handler = async (event: any): Promise<EmailValidationResponse> => {
 
     try {
         const validationResult = await findValidationResultByRequestId(requestId);
+        validationResult.traceLog = await findLogsByRequestId(requestId);
         return createResponse(HttpStatus.OK, validationResult);
     } catch (err) {
         console.log(`Error check validation result for requestId: ${requestId} error:`, err);

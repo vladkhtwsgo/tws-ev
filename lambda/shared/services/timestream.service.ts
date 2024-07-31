@@ -1,18 +1,19 @@
-import {TimestreamWriteClient,WriteRecordsCommand} from "@aws-sdk/client-timestream-write";
-import { TimestreamQueryClient, QueryCommand } from "@aws-sdk/client-timestream-query";
+import {TimestreamWriteClient, WriteRecordsCommand} from "@aws-sdk/client-timestream-write";
+import {TimestreamQueryClient, QueryCommand} from "@aws-sdk/client-timestream-query";
 import {_Record} from "@aws-sdk/client-timestream-write/dist-types/models/models_0";
 import {ValidationLogNames} from "../enums/validators";
-import {formatLogs} from "../utils";
+import {transformRawLogs} from "../utils";
 import {LogEntry, RawLogEntry} from "../interfaces";
+
 const client = new TimestreamWriteClient({});
 const queryClient = new TimestreamQueryClient({});
 
-export const saveTSMessage = async (requestId:string, validator: ValidationLogNames, points: number, message:string): Promise<void> => {
+export const saveTSMessage = async (requestId: string, validator: ValidationLogNames, points: number, message: string): Promise<void> => {
     const record = {
         Dimensions: [
-            { Name: 'requestId', Value: requestId},
-            { Name: 'validator', Value: validator },
-            { Name: 'message', Value: message },
+            {Name: 'requestId', Value: requestId},
+            {Name: 'validator', Value: validator},
+            {Name: 'message', Value: message},
         ],
         MeasureName: 'points',
         MeasureValue: points.toString(),
@@ -30,12 +31,15 @@ export const saveTSMessage = async (requestId:string, validator: ValidationLogNa
 };
 
 export const findLogsByRequestId = async (requestId: string): Promise<LogEntry[]> => {
-    const query = `SELECT * FROM "${process.env.TIMESTREAM_DATABASE_NAME!}"."${process.env.TIMESTREAM_TABLE_NAME!}" WHERE requestId = '${requestId}' ORDER BY time desc`;
+    const query = `SELECT *
+                   FROM "${process.env.TIMESTREAM_DATABASE_NAME!}"."${process.env.TIMESTREAM_TABLE_NAME!}"
+                   WHERE requestId = '${requestId}'
+                   ORDER BY time desc`;
 
     const command = new QueryCommand({
         QueryString: query,
     });
 
     const result = await queryClient.send(command);
-    return formatLogs(result?.Rows as RawLogEntry[] || []);
+    return transformRawLogs(result?.Rows as RawLogEntry[] || []);
 };

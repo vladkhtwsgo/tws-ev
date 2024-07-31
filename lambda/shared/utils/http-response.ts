@@ -20,15 +20,3 @@ export const createResponse = (statusCode: number, body: Record<string, any> = {
         body: JSON.stringify(body)
     };
 };
-export const formatLogs = (logs: RawLogEntry[]): LogEntry[] => {
-    return logs.map(log => {
-        const [requestId, validator, message, , , timestamp, points] = log.Data;
-        return {
-            requestId: requestId?.ScalarValue ?? '',
-            validator: validator?.ScalarValue ?? '',
-            message: message?.ScalarValue ?? '',
-            timestamp: timestamp?.ScalarValue ?? '',
-            points: parseFloat(points?.ScalarValue ?? '0'),
-        };
-    });
-};

@@ -99,7 +99,7 @@ Principal schema
 <img width="1085" alt="Screenshot 2024-07-11 at 15 18 41" src="./principal_schema.png">
 
 **TODO LIST**
-- [ ] Add Black/White email lists and lambda validation
+- [x] Add Black/White email lists and lambda validation
 - [ ] *Add SMT validation lambda
 - [ ] Add widgets for CloudWatch on deploy
 - [ ] Export validated emails to S3

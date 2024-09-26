@@ -12,6 +12,7 @@ import * as sqs from 'aws-cdk-lib/aws-sqs';
 import * as path from 'path';
 import {NodejsFunction} from "aws-cdk-lib/aws-lambda-nodejs";
 import * as dotenv from 'dotenv';
+import {ValidationLists} from "../lambda/shared/enums/validators";
 
 dotenv.config();
 
@@ -42,6 +43,14 @@ export class TwsEvStack extends cdk.Stack {
         validationResultsTable.addGlobalSecondaryIndex({
             indexName: 'RequestIdIndex',
             partitionKey: {name: 'requestId', type: dynamodb.AttributeType.STRING},
+        });
+
+        const emailBlackListTable = new dynamodb.Table(this, 'EmailBlackListTable', {
+            partitionKey: {name: 'email', type: dynamodb.AttributeType.STRING},
+        });
+
+        const emailWhiteListTable = new dynamodb.Table(this, 'EmailWhiteListTable', {
+            partitionKey: {name: 'email', type: dynamodb.AttributeType.STRING},
         });
 
         // Timestream
@@ -139,7 +148,7 @@ export class TwsEvStack extends cdk.Stack {
         authenticatedRole.addToPolicy(new iam.PolicyStatement({
             effect: iam.Effect.ALLOW,
             actions: ['dynamodb:*'],
-            resources: [validationResultsTable.tableArn],
+            resources: [validationResultsTable.tableArn, emailBlackListTable.tableArn, emailWhiteListTable.tableArn],
         }));
 
         authenticatedRole.addToPolicy(new iam.PolicyStatement({
@@ -180,6 +189,16 @@ export class TwsEvStack extends cdk.Stack {
                 VALIDATION_RESULTS_TABLE: validationResultsTable.tableName,
                 TIMESTREAM_DATABASE_NAME: timeStreamDatabase.databaseName || '',
                 TIMESTREAM_TABLE_NAME: timeStreamTable.tableName || '',
+            },
+        });
+
+        const blackWhiteListValidationLambda = new NodejsFunction(this, 'BlackWhiteListValidationLambda', {
+            runtime: lambda.Runtime.NODEJS_20_X,
+            handler: 'handler',
+            entry: path.join(__dirname, '../lambda/functions/validation/email-steps/black-white-list-validation/handler.ts'),
+            environment: {
+                EMAIL_BLACK_LIST_TABLE: emailBlackListTable.tableName || '',
+                EMAIL_WHITE_LIST_TABLE: emailWhiteListTable.tableName || '',
             },
         });
 
@@ -224,12 +243,23 @@ export class TwsEvStack extends cdk.Stack {
                 VALIDATION_RESULTS_TABLE: validationResultsTable.tableName,
                 TIMESTREAM_DATABASE_NAME: timeStreamDatabase.databaseName || '',
                 TIMESTREAM_TABLE_NAME: timeStreamTable.tableName || '',
+                EMAIL_BLACK_LIST_TABLE: emailBlackListTable.tableName || '',
+                EMAIL_WHITE_LIST_TABLE: emailWhiteListTable.tableName || '',
+            },
+        });
+
+        const clearBlackListLambda = new NodejsFunction(this, 'ClearBlackListLambda', {
+            runtime: lambda.Runtime.NODEJS_20_X,
+            handler: 'handler',
+            entry: path.join(__dirname, '../lambda/functions/black-list/clear/handler.ts'),
+            environment: {
+                EMAIL_BLACK_LIST_TABLE: emailBlackListTable.tableName || '',
             },
         });
 
         // Grant Lambda functions permissions
-        [initiateValidationLambda, checkStatusLambda, mxValidatorLambda, cnameValidatorLambda, resultAggregatorLambda].forEach(lambdaFunc => {
-            validationResultsTable.grantReadWriteData(lambdaFunc);
+        [initiateValidationLambda, blackWhiteListValidationLambda, checkStatusLambda, mxValidatorLambda, cnameValidatorLambda, resultAggregatorLambda, clearBlackListLambda].forEach(lambdaFunc => {
+            [validationResultsTable, emailBlackListTable, emailWhiteListTable].forEach((table) => table.grantReadWriteData(lambdaFunc));
             lambdaFunc.addToRolePolicy(new iam.PolicyStatement({
                 effect: iam.Effect.ALLOW,
                 // actions: [
@@ -244,6 +274,11 @@ export class TwsEvStack extends cdk.Stack {
         });
 
         // Step Function tasks and definition
+        const blackWhiteListValidationTask = new tasks.LambdaInvoke(this, 'BlackWhiteList Validation', {
+            lambdaFunction: blackWhiteListValidationLambda,
+            outputPath: '$.Payload',
+        });
+
         const mxValidationTask = new tasks.LambdaInvoke(this, 'MX Validation', {
             lambdaFunction: mxValidatorLambda,
             outputPath: '$.Payload',
@@ -255,8 +290,8 @@ export class TwsEvStack extends cdk.Stack {
         });
 
         const parallelValidation = new sfn.Parallel(this, 'ParallelValidation')
-            .branch(mxValidationTask)
-            .branch(cnameValidationTask)
+          .branch(mxValidationTask)
+          .branch(cnameValidationTask);
 
         const aggregateResultsTask = new tasks.LambdaInvoke(this, 'Aggregate Results', {
             lambdaFunction: resultAggregatorLambda,
@@ -264,8 +299,12 @@ export class TwsEvStack extends cdk.Stack {
             outputPath: '$.Payload',
         });
 
-        const definition = parallelValidation
-            .next(aggregateResultsTask);
+        const isBlackWhiteListCheck = new sfn.Choice(this, 'Does The Black/White List Contain An Email?')
+          .when(sfn.Condition.stringEquals('$.validationList', ValidationLists.NONE), parallelValidation.next(aggregateResultsTask))
+          .otherwise(aggregateResultsTask);
+
+        const definition = blackWhiteListValidationTask
+          .next(isBlackWhiteListCheck);
 
         const stateMachine = new sfn.StateMachine(this, 'EmailValidationStateMachine', {
             definition,
@@ -310,6 +349,20 @@ export class TwsEvStack extends cdk.Stack {
                 required: ['email'],
             },
         });
+        const requestBlackListClearModel = new apigateway.Model(this, 'RequestBlackListClearModel', {
+            restApi: api,
+            contentType: 'application/json',
+            schema: {
+                type: apigateway.JsonSchemaType.OBJECT,
+                properties: {
+                    emails: {
+                        type: apigateway.JsonSchemaType.ARRAY,
+                        items: { type: apigateway.JsonSchemaType.STRING }
+                    },
+                },
+                required: ['emails'],
+            },
+        });
 
         const requestValidator = new apigateway.RequestValidator(this, 'RequestValidator', {
             restApi: api,
@@ -338,5 +391,19 @@ export class TwsEvStack extends cdk.Stack {
             authorizer,
             authorizationType: apigateway.AuthorizationType.COGNITO,
         });//Just for example as proxy mode to pass all responses from lambda
+
+        const blacklistResource = api.root.addResource('blacklist');
+        const clearBlacklistResource = blacklistResource.addResource('clear');
+        clearBlacklistResource.addMethod('POST', new apigateway.LambdaIntegration(clearBlackListLambda, {
+            proxy: true,
+        }), {
+            authorizer,
+            authorizationType: apigateway.AuthorizationType.COGNITO,
+            methodResponses: [{ statusCode: '200' }],
+            requestModels: {
+                'application/json': requestBlackListClearModel,
+            },
+            requestValidator: requestValidator,
+        });
     }
 }

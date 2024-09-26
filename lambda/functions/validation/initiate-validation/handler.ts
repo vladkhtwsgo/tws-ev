@@ -9,7 +9,6 @@ import {createResponse, isEmail} from "../../../shared/utils";
 import {HttpStatus, ValidationStatus} from "../../../shared/enums";
 import {sendPayloadToSqs} from "../../../shared/services/sqs.service";
 
-
 export const handler = async (event: { body: any; }): Promise<EmailValidationResponse> => {
     let payload: { [key: string]: string } = {};
     try {

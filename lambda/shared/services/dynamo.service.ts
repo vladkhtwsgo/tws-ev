@@ -1,7 +1,7 @@
 import {DynamoDBClient} from "@aws-sdk/client-dynamodb";
-import {DynamoDBDocumentClient, GetCommand, PutCommand, QueryCommand, UpdateCommand} from "@aws-sdk/lib-dynamodb";
+import {DynamoDBDocumentClient, GetCommand, PutCommand, QueryCommand, UpdateCommand, BatchWriteCommand} from "@aws-sdk/lib-dynamodb";
 import {EmailNotFoundException} from "../exceptions";
-import {EmailValidationResult} from "../interfaces";
+import {BlackWhiteListEntity, EmailValidationResult} from "../interfaces";
 
 const client = new DynamoDBClient({});
 const dynamo = DynamoDBDocumentClient.from(client);
@@ -57,4 +57,75 @@ export const findValidationResultByRequestId = async (requestId: string): Promis
         throw new EmailNotFoundException();
     }
     return items[0] as EmailValidationResult;
+};
+
+export const findBlackListItemByEmail = async (email: string): Promise<BlackWhiteListEntity | null> => {
+    const query = new QueryCommand({
+        TableName: process.env.EMAIL_BLACK_LIST_TABLE!,
+        KeyConditionExpression: 'email = :email',
+        ExpressionAttributeValues: {
+            ':email': email,
+        },
+    });
+
+    const {Items: items} = await dynamo.send(query);
+    return items && items.length ? items[0] as BlackWhiteListEntity : null;
+};
+
+export const saveBlackList = async (data: BlackWhiteListEntity): Promise<void> => {
+    const params = {
+        TableName: process.env.EMAIL_BLACK_LIST_TABLE!,
+        Item: data,
+    };
+
+    await dynamo.send(new PutCommand(params));
+};
+
+export const deleteEmailsFromBlacklist = async (emails: string[]): Promise<void> => {
+    // The BatchWriteCommand can get 25 items by one time
+    const chunks = [];
+    const batchSize = 25;
+
+    for (let i = 0; i < emails.length; i += batchSize) {
+        const chunk = emails.slice(i, i + batchSize);
+        chunks.push(chunk);
+    }
+
+    for (const chunk of chunks) {
+        const deleteRequests = chunk.map((email) => ({
+            DeleteRequest: {
+                Key: { email }
+            },
+        }));
+
+        const command = new BatchWriteCommand({
+            RequestItems: {
+                [process.env.EMAIL_BLACK_LIST_TABLE!]: deleteRequests,
+            },
+        });
+
+        await dynamo.send(command);
+    }
+};
+
+export const findWhiteListItemByEmail = async (email: string): Promise<BlackWhiteListEntity | null> => {
+    const query = new QueryCommand({
+        TableName: process.env.EMAIL_WHITE_LIST_TABLE!,
+        KeyConditionExpression: 'email = :email',
+        ExpressionAttributeValues: {
+            ':email': email,
+        },
+    });
+
+    const {Items: items} = await dynamo.send(query);
+    return items && items.length ? items[0] as BlackWhiteListEntity : null;
+};
+
+export const saveWhiteList = async (data: BlackWhiteListEntity): Promise<void> => {
+    const params = {
+        TableName: process.env.EMAIL_WHITE_LIST_TABLE!,
+        Item: data,
+    };
+
+    await dynamo.send(new PutCommand(params));
 };

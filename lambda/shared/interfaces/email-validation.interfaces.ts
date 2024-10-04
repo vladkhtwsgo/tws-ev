@@ -14,7 +14,7 @@ export interface EmailValidationResponse {
 export interface EmailValidationStep extends EmailValidationRequest {
     validator: 'regexp' | 'mx' | 'cname';
     points: number;
-    error?: string
+    error?: string;
 }
 
 export interface EmailValidationResult extends EmailValidationRequest {

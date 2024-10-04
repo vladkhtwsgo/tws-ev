@@ -9,6 +9,18 @@ https://bitbucket.org/teamworkspirit/aws-email-validator/src/development/
 - Node.js >=21 installed
 - cdk installed
 
+## Intro
+It's an AWS CDK project that you need to deploy, investigate, and do one of the tasks below.
+Steps to work with this educational project:
+1. Create a new AWS account
+2. Deploy the current project to your AWS account
+3. Check on the AWS UI the list of the services used and the code to investigate the whole chain of the logic. Make requests, debug logic, and do everything that you want to understand how you can use AWS services.
+4. Create a PDF document where you put screens of every service that you have investigated and send it to the team who created this project.
+5. Create a new branch and do one of the tasks below.
+6. Create a PR with your changes and notify the creators about it.
+
+Good luck!
+
 ## Steps to deploy
 
 1. cp.env.example .env and fill the variables (for local testing enough to COGNITO_DOMAIN_PREFIX)
@@ -72,6 +84,7 @@ Used tools:
 - AWS Step Function
 - AWS DynamoDB
 - AWS GW
+- AWS Event Bridge Scheduler
 
 Structure:
 This is Default CDK template but with some changes.
@@ -96,4 +109,11 @@ This is Default CDK template but with some changes.
 ```
 
 Principal schema
-<img width="1085" alt="Screenshot 2024-07-11 at 15 18 41" src="https://github.com/user-attachments/assets/646257a2-3f88-4810-93e4-742511354555">
+<img width="1085" alt="Screenshot 2024-07-11 at 15 18 41" src="./principal_schema.png">
+
+**TODO LIST**
+- [x] Add Black/White email lists and lambda validation
+- [ ] *Add SMTP validation lambda
+- [ ] Add widgets for CloudWatch on deploy
+- [ ] Export validated emails to S3
+- [ ] Create CRUD for the Black/White list

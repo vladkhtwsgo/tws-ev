@@ -84,6 +84,7 @@ Used tools:
 - AWS Step Function
 - AWS DynamoDB
 - AWS GW
+- AWS Event Bridge Scheduler
 
 Structure:
 This is Default CDK template but with some changes.
@@ -115,3 +116,4 @@ Principal schema
 - [ ] *Add SMTP validation lambda
 - [ ] Add widgets for CloudWatch on deploy
 - [ ] Export validated emails to S3
+- [ ] Create CRUD for the Black/White list

@@ -1,7 +1,8 @@
 import {EmailValidationResponse, EmailValidationResult} from "../../../shared/interfaces";
 import {v4 as uuidv4} from 'uuid';
 import {
-    findValidationResultByEmail,
+    findBlackListItemByEmail,
+    findValidationResultByEmail, findWhiteListItemByEmail,
     saveValidationResult,
     updateValidationResult
 } from "../../../shared/services/dynamo.service";
@@ -22,12 +23,28 @@ export const handler = async (event: { body: any; }): Promise<EmailValidationRes
         return createResponse(HttpStatus.BAD_REQUEST, {errors: ['Is not a valid email']});
     }
 
-    let existsEmail: EmailValidationResult | null = null
     try {
-        existsEmail = await findValidationResultByEmail(email);
+        const isBlackListedEmail = await findBlackListItemByEmail(email);
+        if (isBlackListedEmail) {
+            return createResponse(HttpStatus.BAD_REQUEST, {errors: ['This email is in the black list']});
+        }
     } catch (err) {
         return createResponse(HttpStatus.INTERNAL_SERVER_ERROR);
     }
+
+    let existsEmail: EmailValidationResult | null = null
+    try {
+        existsEmail = await findValidationResultByEmail(email);
+        if (existsEmail) {
+            const isWhiteListedEmail = await findWhiteListItemByEmail(email);
+            if (isWhiteListedEmail) {
+                return createResponse(201, { requestId: existsEmail.requestId });
+            }
+        }
+    } catch (err) {
+        return createResponse(HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+
     const requestId = existsEmail ? existsEmail.requestId : uuidv4();
 
     try {
@@ -44,7 +61,7 @@ export const handler = async (event: { body: any; }): Promise<EmailValidationRes
 
     try {
         const sqsMessageId = await sendPayloadToSqs(requestId, email);
-        console.log(`Success send message to SQS ${sqsMessageId}, requestId=${requestId}`);
+        console.log(`Success send message to SQS ${JSON.stringify(sqsMessageId)}, requestId=${requestId}`);
         return createResponse(201, {requestId});
     } catch (err) {
         console.error(`Error sending message to SQS requestId=${requestId}, error: ${err}`);

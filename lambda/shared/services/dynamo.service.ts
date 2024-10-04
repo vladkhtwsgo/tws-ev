@@ -1,7 +1,7 @@
 import {DynamoDBClient} from "@aws-sdk/client-dynamodb";
-import {DynamoDBDocumentClient, GetCommand, PutCommand, QueryCommand, UpdateCommand, BatchWriteCommand} from "@aws-sdk/lib-dynamodb";
+import {DynamoDBDocumentClient, GetCommand, PutCommand, QueryCommand, UpdateCommand, BatchWriteCommand, ScanCommand} from "@aws-sdk/lib-dynamodb";
 import {EmailNotFoundException} from "../exceptions";
-import {BlackWhiteListEntity, EmailValidationResult} from "../interfaces";
+import {BlackWhiteListEntity,EmailValidationResult} from "../interfaces";
 
 const client = new DynamoDBClient({});
 const dynamo = DynamoDBDocumentClient.from(client);
@@ -72,13 +72,30 @@ export const findBlackListItemByEmail = async (email: string): Promise<BlackWhit
     return items && items.length ? items[0] as BlackWhiteListEntity : null;
 };
 
-export const saveBlackList = async (data: BlackWhiteListEntity): Promise<void> => {
+export const saveBlackList = async (email: string, requestId: string, score: number): Promise<void> => {
     const params = {
         TableName: process.env.EMAIL_BLACK_LIST_TABLE!,
-        Item: data,
+        Item: { email, requestId, score, createdAt: new Date().toISOString() },
     };
 
     await dynamo.send(new PutCommand(params));
+};
+
+export const findAllBlackListItems = async (
+  filter?: {
+      FilterExpression: string;
+      ExpressionAttributeValues: {
+        [key: string]: any,
+      };
+  }): Promise<BlackWhiteListEntity[]> => {
+    const scanCommand = new ScanCommand({
+        TableName: process.env.EMAIL_BLACK_LIST_TABLE!,
+        ...(filter || {})
+    });
+
+    const { Items: items } = await dynamo.send(scanCommand);
+
+    return items as BlackWhiteListEntity[];
 };
 
 export const deleteEmailsFromBlacklist = async (emails: string[]): Promise<void> => {
@@ -121,10 +138,10 @@ export const findWhiteListItemByEmail = async (email: string): Promise<BlackWhit
     return items && items.length ? items[0] as BlackWhiteListEntity : null;
 };
 
-export const saveWhiteList = async (data: BlackWhiteListEntity): Promise<void> => {
+export const saveWhiteList = async (email: string, requestId: string): Promise<void> => {
     const params = {
         TableName: process.env.EMAIL_WHITE_LIST_TABLE!,
-        Item: data,
+        Item: { email, requestId, createdAt: new Date().toISOString() },
     };
 
     await dynamo.send(new PutCommand(params));

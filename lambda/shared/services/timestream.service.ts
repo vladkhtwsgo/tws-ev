@@ -1,7 +1,7 @@
 import {TimestreamWriteClient, WriteRecordsCommand} from "@aws-sdk/client-timestream-write";
 import {TimestreamQueryClient, QueryCommand} from "@aws-sdk/client-timestream-query";
 import {_Record} from "@aws-sdk/client-timestream-write/dist-types/models/models_0";
-import {ValidationLogNames} from "../enums/validators";
+import {ValidationLogNames} from "../enums";
 import {transformRawLogs} from "../utils";
 import {LogEntry, RawLogEntry} from "../interfaces";
 

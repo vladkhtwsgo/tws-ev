@@ -9,10 +9,11 @@ import * as iam from 'aws-cdk-lib/aws-iam';
 import * as sfn from 'aws-cdk-lib/aws-stepfunctions';
 import * as tasks from 'aws-cdk-lib/aws-stepfunctions-tasks';
 import * as sqs from 'aws-cdk-lib/aws-sqs';
+import * as events from 'aws-cdk-lib/aws-events';
+import * as targets from 'aws-cdk-lib/aws-events-targets';
 import * as path from 'path';
 import {NodejsFunction} from "aws-cdk-lib/aws-lambda-nodejs";
 import * as dotenv from 'dotenv';
-import {ValidationLists} from "../lambda/shared/enums/validators";
 
 dotenv.config();
 
@@ -35,6 +36,9 @@ export class TwsEvStack extends cdk.Stack {
         const googleClientSecret = getEnvVariable('GOOGLE_CLIENT_SECRET');
         const facebookClientId = getEnvVariable('FACEBOOK_CLIENT_ID');
         const facebookClientSecret = getEnvVariable('FACEBOOK_CLIENT_SECRET');
+        const bannedEmailDomains = getEnvVariable('BANNED_EMAIL_DOMAINS');
+        const approvedEmailDomains = getEnvVariable('APPROVED_EMAIL_DOMAINS');
+        const rehabilitatedEmailDomains = getEnvVariable('REHABILITATED_EMAIL_DOMAINS');
 
         // DynamoDB table for storing validation results
         const validationResultsTable = new dynamodb.Table(this, 'ValidationResultsTable', {
@@ -189,14 +193,6 @@ export class TwsEvStack extends cdk.Stack {
                 VALIDATION_RESULTS_TABLE: validationResultsTable.tableName,
                 TIMESTREAM_DATABASE_NAME: timeStreamDatabase.databaseName || '',
                 TIMESTREAM_TABLE_NAME: timeStreamTable.tableName || '',
-            },
-        });
-
-        const blackWhiteListValidationLambda = new NodejsFunction(this, 'BlackWhiteListValidationLambda', {
-            runtime: lambda.Runtime.NODEJS_20_X,
-            handler: 'handler',
-            entry: path.join(__dirname, '../lambda/functions/validation/email-steps/black-white-list-validation/handler.ts'),
-            environment: {
                 EMAIL_BLACK_LIST_TABLE: emailBlackListTable.tableName || '',
                 EMAIL_WHITE_LIST_TABLE: emailWhiteListTable.tableName || '',
             },
@@ -245,20 +241,27 @@ export class TwsEvStack extends cdk.Stack {
                 TIMESTREAM_TABLE_NAME: timeStreamTable.tableName || '',
                 EMAIL_BLACK_LIST_TABLE: emailBlackListTable.tableName || '',
                 EMAIL_WHITE_LIST_TABLE: emailWhiteListTable.tableName || '',
+                BANNED_EMAIL_DOMAINS: bannedEmailDomains || '',
+                APPROVED_EMAIL_DOMAINS: approvedEmailDomains || ''
             },
         });
 
-        const clearBlackListLambda = new NodejsFunction(this, 'ClearBlackListLambda', {
+        const checkBlackListSchedulerLambda = new NodejsFunction(this, 'checkBlackListSchedulerLambda', {
             runtime: lambda.Runtime.NODEJS_20_X,
-            handler: 'handler',
-            entry: path.join(__dirname, '../lambda/functions/black-list/clear/handler.ts'),
+            handler: 'index.handler',
+            entry: path.join(__dirname, '../lambda/functions/schedule/check-black-list/handler.ts'),
             environment: {
+                QUEUE_URL: queue.queueUrl,
                 EMAIL_BLACK_LIST_TABLE: emailBlackListTable.tableName || '',
+                REHABILITATED_EMAIL_DOMAINS: rehabilitatedEmailDomains || '',
+                BANNED_EMAIL_DOMAINS: bannedEmailDomains || '',
+                TIMESTREAM_DATABASE_NAME: timeStreamDatabase.databaseName || '',
+                TIMESTREAM_TABLE_NAME: timeStreamTable.tableName || '',
             },
         });
 
         // Grant Lambda functions permissions
-        [initiateValidationLambda, blackWhiteListValidationLambda, checkStatusLambda, mxValidatorLambda, cnameValidatorLambda, resultAggregatorLambda, clearBlackListLambda].forEach(lambdaFunc => {
+        [initiateValidationLambda, checkStatusLambda, mxValidatorLambda, cnameValidatorLambda, resultAggregatorLambda, checkBlackListSchedulerLambda].forEach(lambdaFunc => {
             [validationResultsTable, emailBlackListTable, emailWhiteListTable].forEach((table) => table.grantReadWriteData(lambdaFunc));
             lambdaFunc.addToRolePolicy(new iam.PolicyStatement({
                 effect: iam.Effect.ALLOW,
@@ -274,11 +277,6 @@ export class TwsEvStack extends cdk.Stack {
         });
 
         // Step Function tasks and definition
-        const blackWhiteListValidationTask = new tasks.LambdaInvoke(this, 'BlackWhiteList Validation', {
-            lambdaFunction: blackWhiteListValidationLambda,
-            outputPath: '$.Payload',
-        });
-
         const mxValidationTask = new tasks.LambdaInvoke(this, 'MX Validation', {
             lambdaFunction: mxValidatorLambda,
             outputPath: '$.Payload',
@@ -291,7 +289,7 @@ export class TwsEvStack extends cdk.Stack {
 
         const parallelValidation = new sfn.Parallel(this, 'ParallelValidation')
           .branch(mxValidationTask)
-          .branch(cnameValidationTask);
+          .branch(cnameValidationTask)
 
         const aggregateResultsTask = new tasks.LambdaInvoke(this, 'Aggregate Results', {
             lambdaFunction: resultAggregatorLambda,
@@ -299,12 +297,8 @@ export class TwsEvStack extends cdk.Stack {
             outputPath: '$.Payload',
         });
 
-        const isBlackWhiteListCheck = new sfn.Choice(this, 'Does The Black/White List Contain An Email?')
-          .when(sfn.Condition.stringEquals('$.validationList', ValidationLists.NONE), parallelValidation.next(aggregateResultsTask))
-          .otherwise(aggregateResultsTask);
-
-        const definition = blackWhiteListValidationTask
-          .next(isBlackWhiteListCheck);
+        const definition = parallelValidation
+          .next(aggregateResultsTask);
 
         const stateMachine = new sfn.StateMachine(this, 'EmailValidationStateMachine', {
             definition,
@@ -322,7 +316,7 @@ export class TwsEvStack extends cdk.Stack {
         stateMachine.grantStartExecution(sqsToStepFunctionLambda);
 
         // Grant the Lambda function permissions to send messages to the SQS queue
-        queue.grantSendMessages(initiateValidationLambda);
+        [initiateValidationLambda, checkBlackListSchedulerLambda].forEach((lambda) => queue.grantSendMessages(lambda))
         // Grant Step Function permissions to consume messages from the queue
         queue.grantConsumeMessages(sqsToStepFunctionLambda);
 
@@ -347,20 +341,6 @@ export class TwsEvStack extends cdk.Stack {
                     email: {type: apigateway.JsonSchemaType.STRING},
                 },
                 required: ['email'],
-            },
-        });
-        const requestBlackListClearModel = new apigateway.Model(this, 'RequestBlackListClearModel', {
-            restApi: api,
-            contentType: 'application/json',
-            schema: {
-                type: apigateway.JsonSchemaType.OBJECT,
-                properties: {
-                    emails: {
-                        type: apigateway.JsonSchemaType.ARRAY,
-                        items: { type: apigateway.JsonSchemaType.STRING }
-                    },
-                },
-                required: ['emails'],
             },
         });
 
@@ -392,18 +372,16 @@ export class TwsEvStack extends cdk.Stack {
             authorizationType: apigateway.AuthorizationType.COGNITO,
         });//Just for example as proxy mode to pass all responses from lambda
 
-        const blacklistResource = api.root.addResource('blacklist');
-        const clearBlacklistResource = blacklistResource.addResource('clear');
-        clearBlacklistResource.addMethod('POST', new apigateway.LambdaIntegration(clearBlackListLambda, {
-            proxy: true,
-        }), {
-            authorizer,
-            authorizationType: apigateway.AuthorizationType.COGNITO,
-            methodResponses: [{ statusCode: '200' }],
-            requestModels: {
-                'application/json': requestBlackListClearModel,
-            },
-            requestValidator: requestValidator,
+        // AWS EventBridge
+        const rule = new events.Rule(this, 'WeeklyMondayMidnightRule', {
+            schedule: events.Schedule.cron({
+                minute: '0',
+                hour: '0',
+                month: '*',
+                weekDay: '2',
+            }),
         });
+
+        rule.addTarget(new targets.LambdaFunction(checkBlackListSchedulerLambda));
     }
 }

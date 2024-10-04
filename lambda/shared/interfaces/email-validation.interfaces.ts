@@ -1,5 +1,4 @@
 import {ValidationStatus} from "../enums";
-import {ValidationLists} from "../enums/validators";
 
 export interface EmailValidationRequest {
     email: string;
@@ -13,18 +12,13 @@ export interface EmailValidationResponse {
 }
 
 export interface EmailValidationStep extends EmailValidationRequest {
-    validator: 'regexp' | 'mx' | 'cname' | 'blackWhiteList';
+    validator: 'regexp' | 'mx' | 'cname';
     points: number;
     error?: string;
-    validationList?: ValidationLists;
 }
 
 export interface EmailValidationResult extends EmailValidationRequest {
     score: number; //max 20
     validationStatus: ValidationStatus;
     traceLog?: any[]; //TODO:: maybe from timelinedb
-}
-
-export interface BlackWhiteListEntity {
-    email: string;
 }

@@ -1,13 +1,13 @@
 import {
     updateValidationResult,
     saveBlackList,
-    saveWhiteList,
+    saveWhiteList, findBlackListItemByEmail, deleteEmailsFromBlacklist,
 } from '../../../../shared/services/dynamo.service';
 import {EmailValidationStep} from "../../../../shared/interfaces";
 import {ValidationStatus} from "../../../../shared/enums";
 import {saveTSMessage} from "../../../../shared/services/timestream.service";
 import {ValidationLogNames} from "../../../../shared/enums";
-import {checkEmailDomain} from "../../../../shared/utils";
+import {checkEmailDomain, getListFromEnvVariable} from "../../../../shared/utils";
 
 export const handler = async (event: EmailValidationStep[]): Promise<void> => {
     const mxResult = event[0];
@@ -23,17 +23,25 @@ export const handler = async (event: EmailValidationStep[]): Promise<void> => {
         console.log(`Data from ${ValidationLogNames.CNAME}:`, cnameResult);
         await updateValidationResult(email, score, ValidationStatus.COMPLETED);
 
-        const bannedEmailDomains = (process.env.BANNED_EMAIL_DOMAINS!).split(',');
-        const isBannedEmail = checkEmailDomain(bannedEmailDomains, email);
-        const approvedEmailDomains = (process.env.APPROVED_EMAIL_DOMAINS!).split(',');
-        const isApprovedEmail = checkEmailDomain(approvedEmailDomains, email);
+        const domainBlackList = getListFromEnvVariable('DOMAIN_BLACK_LIST');
+        const isBannedEmail = checkEmailDomain(domainBlackList, email);
+        const domainWhiteList = getListFromEnvVariable('DOMAIN_WHITE_LIST');
+        const isApprovedEmail = checkEmailDomain(domainWhiteList, email);
+        const blackListedEmail = await findBlackListItemByEmail(email);
 
         if (score === 0 || isBannedEmail) {
-            await saveBlackList(email, requestId, score);
-            await saveTSMessage(requestId, ValidationLogNames.AGGREGATOR, score, 'The email was added in the black list')
+            const recheckAttempts = blackListedEmail ? blackListedEmail.recheckAttempts + 1 : 0;
+            await saveBlackList(email, requestId, score, recheckAttempts);
+            await saveTSMessage(requestId, ValidationLogNames.AGGREGATOR, score, `The email ${email} was added in the black list`)
         } else if (score === 20 || isApprovedEmail) {
             await saveWhiteList(email, requestId);
-            await saveTSMessage(requestId, ValidationLogNames.AGGREGATOR, score, 'The email was added in the white list')
+            await saveTSMessage(requestId, ValidationLogNames.AGGREGATOR, score, `The email ${email} was added in the white list`)
+        }
+
+        if (score > 0 && blackListedEmail) {
+            await deleteEmailsFromBlacklist([email]);
+            await saveTSMessage(requestId, ValidationLogNames.AGGREGATOR, score, `The email ${email} was removed from the black list`);
+            console.log(`The email ${email} was removed from the black list`);
         }
     } catch (err) {
         console.error(`Error saving validation result for email: ${email} `, err);

@@ -36,9 +36,9 @@ export class TwsEvStack extends cdk.Stack {
         const googleClientSecret = getEnvVariable('GOOGLE_CLIENT_SECRET');
         const facebookClientId = getEnvVariable('FACEBOOK_CLIENT_ID');
         const facebookClientSecret = getEnvVariable('FACEBOOK_CLIENT_SECRET');
-        const bannedEmailDomains = getEnvVariable('BANNED_EMAIL_DOMAINS');
-        const approvedEmailDomains = getEnvVariable('APPROVED_EMAIL_DOMAINS');
-        const rehabilitatedEmailDomains = getEnvVariable('REHABILITATED_EMAIL_DOMAINS');
+        const domainBlackList = getEnvVariable('DOMAIN_BLACK_LIST');
+        const domainWhiteList = getEnvVariable('DOMAIN_WHITE_LIST');
+        const domainRehabilitateList = getEnvVariable('DOMAIN_REHABILITATE_LIST');
 
         // DynamoDB table for storing validation results
         const validationResultsTable = new dynamodb.Table(this, 'ValidationResultsTable', {
@@ -241,8 +241,8 @@ export class TwsEvStack extends cdk.Stack {
                 TIMESTREAM_TABLE_NAME: timeStreamTable.tableName || '',
                 EMAIL_BLACK_LIST_TABLE: emailBlackListTable.tableName || '',
                 EMAIL_WHITE_LIST_TABLE: emailWhiteListTable.tableName || '',
-                BANNED_EMAIL_DOMAINS: bannedEmailDomains || '',
-                APPROVED_EMAIL_DOMAINS: approvedEmailDomains || ''
+                DOMAIN_BLACK_LIST: domainBlackList || '',
+                DOMAIN_WHITE_LIST: domainWhiteList || ''
             },
         });
 
@@ -253,8 +253,8 @@ export class TwsEvStack extends cdk.Stack {
             environment: {
                 QUEUE_URL: queue.queueUrl,
                 EMAIL_BLACK_LIST_TABLE: emailBlackListTable.tableName || '',
-                REHABILITATED_EMAIL_DOMAINS: rehabilitatedEmailDomains || '',
-                BANNED_EMAIL_DOMAINS: bannedEmailDomains || '',
+                DOMAIN_REHABILITATE_LIST: domainRehabilitateList || '',
+                DOMAIN_BLACK_LIST: domainBlackList || '',
                 TIMESTREAM_DATABASE_NAME: timeStreamDatabase.databaseName || '',
                 TIMESTREAM_TABLE_NAME: timeStreamTable.tableName || '',
             },

@@ -5,7 +5,7 @@ import {
 } from "../../../../shared/interfaces";
 import {CnameNotFoundException} from "../../../../shared/exceptions";
 import {saveTSMessage} from "../../../../shared/services/timestream.service";
-import {ValidationLogNames} from "../../../../shared/enums/validators";
+import {ValidationLogNames} from "../../../../shared/enums";
 
 export const handler = async (event: EmailValidationRequest): Promise<EmailValidationStep> => {
     const {email,requestId} = event;
